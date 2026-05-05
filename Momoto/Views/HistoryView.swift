@@ -9,7 +9,7 @@ import SwiftUI
 
 // Inputs
 struct HistoryView: View {
-    let history: [MindMap]
+    @State private var history: [MindMap] = []
     let onTap: (MindMap) -> Void
     let onDelete: (UUID) -> Void
     
@@ -40,6 +40,9 @@ struct HistoryView: View {
                 .padding(.top, 8)
             }
         }
+        .onAppear {
+            history = HistoryService.shared.load()
+        }
         .navigationTitle("Recent Mindmaps")
         .navigationBarTitleDisplayMode(.large)
         
@@ -63,7 +66,10 @@ struct HistoryView: View {
                                 if !selectedDeleteID.insert(entry.id).inserted { selectedDeleteID.remove(entry.id) }
                             } else { onTap(entry) }
                         },
-                        onDelete: { onDelete(entry.id) },
+                        onDelete: {
+                            onDelete(entry.id)
+                            history = HistoryService.shared.load()
+                        },
                         isDeleteMode: isDeleteMode,
                         isSelected: selectedDeleteID.contains(entry.id)
                     )
@@ -167,6 +173,7 @@ struct HistoryView: View {
         selectedDeleteID.forEach(onDelete)
         selectedDeleteID.removeAll()
         isDeleteMode = false
+        history = HistoryService.shared.load()
     }
 }
 
@@ -194,7 +201,6 @@ struct HistoryView: View {
     
     NavigationStack {
         HistoryView(
-            history: sampleHistory,
             onTap: { _ in },
             onDelete: { _ in }
         )

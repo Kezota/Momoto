@@ -9,6 +9,9 @@ import SwiftUI
 import Combine
 
 struct ProcessingView: View {
+    @EnvironmentObject private var appState: AppState
+    @StateObject private var viewModel = ProcessingViewModel()
+    
     @State private var isAnimating = false
     @State private var textIndex = 0
     
@@ -26,6 +29,35 @@ struct ProcessingView: View {
     let timer = Timer.publish(every: 2.0, on: .main, in: .common).autoconnect()
     
     var body: some View {
+        ZStack {
+            Color(white: 0.98).ignoresSafeArea()
+            
+            switch viewModel.state {
+            case .loading:
+                loadingBody
+                
+            case .success(let mindMap):
+                Color.clear // keeps the screen blank while the navigation push animates.
+                    .onAppear {
+                        appState.path.append(AppRoute.mindmap(mindMap))
+                    }
+                
+            case .failure(let message):
+                errorBody(message: message)
+            }
+        }
+        .navigationBarBackButtonHidden(true)
+        .task {
+            // Run the AI call the moment this view appears.
+            await viewModel.generate(
+                from: appState.pendingInputText,
+                source: "App"
+            )
+        }
+    }
+    
+    
+    private var loadingBody: some View {
         VStack(spacing: 24) {
             
             // Progress Indicator & Icon
@@ -82,6 +114,31 @@ struct ProcessingView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(white: 0.98))
+    }
+    private func errorBody(message: String) -> some View {
+        VStack(spacing: 20) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 48))
+                .foregroundColor(.orange)
+            Text("Something went wrong")
+                .font(.system(.title3, design: .rounded).weight(.bold))
+            Text(message)
+                .font(.system(.subheadline, design: .rounded))
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 32)
+            Button("Try Again") {
+                Task {
+                    await viewModel.generate(
+                        from: appState.pendingInputText,
+                        source: "App"
+                    )
+                }
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(.purple)
+        }
+        .padding()
     }
 }
 
