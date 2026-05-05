@@ -27,7 +27,7 @@ struct CameraView: View {
     @StateObject private var ocr    = OCRViewModel()
     @State private var capturedImage: UIImage?
     @Environment(\.dismiss) private var dismiss
-                                                                                                                         
+                                                                                                                
     var body: some View {
         ZStack {
             AppTheme.background.ignoresSafeArea()
@@ -85,12 +85,12 @@ struct CameraView: View {
           .background(AppTheme.darkCard)
           .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
           .shadow(color: Color.black.opacity(0.08), radius: 14, x: 0, y: 6)
-      } 
+      }
 
     private var deniedState: some View {
         VStack(spacing: 10) {
             Image(systemName: "camera.fill")
-                .font(.system(size: 38, weight: .semibold))
+                .font(.system(.largeTitle, design: .rounded).weight(.semibold))
                 .foregroundStyle(.white.opacity(0.85))
             Text("Camera access is denied")
                 .font(.system(.headline, design: .rounded))
@@ -102,9 +102,9 @@ struct CameraView: View {
                 .padding(.horizontal, 32)
         }
     }
-                                                                                                                         
+                                                                                                                
     // MARK: - Text area
-                                                                                                                         
+                                                                                                                
     private var textArea: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text("Captured Text")
@@ -195,7 +195,7 @@ struct CameraView: View {
           .opacity(camera.accessState != .allowed ? 0.55 : 1)
       }
 
-                                                                                                                         
+                                                                                                                    
     // MARK: - Actions
 
     private func handleShutter() {

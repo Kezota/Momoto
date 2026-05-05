@@ -89,7 +89,7 @@ struct HistoryView: View {
     private var emptyState: some View {
         VStack(spacing: 12) {
             Image(systemName: "brain")
-                .font(.system(size: 32, weight: .light))
+                .font(.system(.largeTitle, design: .rounded).weight(.light))
                 .foregroundStyle(Color(red: 0.45, green: 0.34, blue: 0.92))
             
             Text("No mindmap available")
@@ -104,7 +104,7 @@ struct HistoryView: View {
     private var noResultsState: some View {
         VStack(spacing: 12) {
             Image(systemName: "magnifyingglass")
-                .font(.system(size: 32, weight: .light))
+                .font(.system(.largeTitle, design: .rounded).weight(.light))
                 .foregroundStyle(Color(red: 0.45, green: 0.34, blue: 0.92).opacity(0.5))
             
             Text("No results for \"\(searchText)\"")
@@ -123,6 +123,7 @@ struct HistoryView: View {
 
             TextField("Search mindmap", text: $searchText)
                 .textFieldStyle(.plain)
+                .font(.system(.body, design: .rounded))
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
