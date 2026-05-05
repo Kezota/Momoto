@@ -18,32 +18,24 @@ struct UploadFileView: View {
 
     var body: some View {
         ZStack {
-            Color(uiColor: UIColor.systemGroupedBackground).ignoresSafeArea()
+            Theme.background.ignoresSafeArea()
 
             VStack(spacing: 24) {
-                Text("Upload a PDF")
-                    .font(.system(.largeTitle, design: .rounded).weight(.bold))
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .padding(.top, 12)
-
                 Spacer()
 
                 pdfArt
 
-                VStack(spacing: 8) {
-                    Text("Upload a PDF")
-                        .font(.system(.title2, design: .rounded).weight(.bold))
+                VStack(alignment: .leading, spacing: 8) {
                     Text("We'll extract the text and turn it into a mindmap.")
                         .font(.system(.subheadline, design: .rounded))
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 24)
+                        .foregroundStyle(Theme.textSecondary)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
 
                 if let errorMessage {
                     Text(errorMessage)
                         .font(.callout)
-                        .foregroundStyle(.red)
+                        .foregroundStyle(Theme.red)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal)
                         .transition(.opacity)
@@ -56,23 +48,19 @@ struct UploadFileView: View {
                 } label: {
                     HStack(spacing: 10) {
                         if isWorking {
-                            ProgressView().tint(.white)
+                            ProgressView().tint(Theme.white)
                         }
                         Text(isWorking ? "Reading..." : "Choose PDF")
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 8)
                     }
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(.orange)
-                .buttonBorderShape(.capsule)
-                .controlSize(.large)
+                .buttonStyle(PrimaryButtonStyle(color: Theme.yellow, isFullWidth: true))
                 .disabled(isWorking)
             }
             .padding(.horizontal, 20)
             .padding(.bottom, 24)
         }
-        .navigationBarTitleDisplayMode(.inline)
+        .navigationTitle("Upload a PDF")
+        .navigationBarTitleDisplayMode(.large)
         .fileImporter(
             isPresented: $showImporter,
             allowedContentTypes: [.pdf]
@@ -89,17 +77,17 @@ struct UploadFileView: View {
     private var pdfArt: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(Color.orange.opacity(0.15))
+                .fill(Theme.yellow.opacity(0.15))
                 .frame(width: 180, height: 220)
-                .shadow(color: Color.orange.opacity(0.25), radius: 16, x: 0, y: 10)
+                .shadow(color: Theme.yellow.opacity(0.25), radius: 16, x: 0, y: 10)
 
             VStack(spacing: 8) {
                 Image(systemName: "doc.fill")
                     .font(.system(size: 90, weight: .regular))
-                    .foregroundStyle(Color.orange)
+                    .foregroundStyle(Theme.yellow)
                 Text("PDF")
                     .font(.system(.title3, design: .rounded).weight(.heavy))
-                    .foregroundStyle(Color.orange)
+                    .foregroundStyle(Theme.yellow)
             }
         }
     }

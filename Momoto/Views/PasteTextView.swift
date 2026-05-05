@@ -18,15 +18,13 @@ struct PasteTextView: View {
 
     var body: some View {
         ZStack {
-            Color(uiColor: UIColor.systemGroupedBackground).ignoresSafeArea()
+            Theme.background.ignoresSafeArea()
 
             VStack(spacing: 24) {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Paste your text")
-                        .font(.system(.largeTitle, design: .rounded).weight(.bold))
                     Text("We'll summarise it into an interactive mindmap.")
                         .font(.system(.subheadline, design: .rounded))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.textSecondary)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -34,25 +32,18 @@ struct PasteTextView: View {
 
                 Spacer(minLength: 0)
 
-                Button {
+                Button("Generate Mindmap") {
                     submit()
-                } label: {
-                    Text("Generate Mindmap")
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(.purple)
-                .buttonBorderShape(.capsule)
-                .controlSize(.large)
+                .buttonStyle(PrimaryButtonStyle(color: Theme.purple, isFullWidth: true))
                 .disabled(text.count < minChars)
-                .opacity(text.count < minChars ? 0.55 : 1.0)
             }
             .padding(.horizontal, 20)
             .padding(.top, 12)
             .padding(.bottom, 24)
         }
-        .navigationBarTitleDisplayMode(.inline)
+        .navigationTitle("Paste your text")
+        .navigationBarTitleDisplayMode(.large)
         .toolbar {
             ToolbarItem(placement: .keyboard) {
                 Spacer()
@@ -66,15 +57,16 @@ struct PasteTextView: View {
     private var editorCard: some View {
         ZStack(alignment: .topLeading) {
             RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(Color(uiColor: UIColor.secondarySystemGroupedBackground))
+                .fill(Theme.white)
                 .overlay(
                     RoundedRectangle(cornerRadius: 22, style: .continuous)
-                        .stroke(Color.black.opacity(0.06), lineWidth: 1)
+                        .stroke(Theme.stroke, lineWidth: 1)
                 )
-                .shadow(color: Color.black.opacity(0.05), radius: 12, x: 0, y: 6)
+                .shadow(color: Theme.black.opacity(0.04), radius: 12, x: 0, y: 6)
 
             TextEditor(text: $text)
                 .font(.system(.body, design: .rounded))
+                .foregroundStyle(Theme.textPrimary)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 14)
                 .scrollContentBackground(.hidden)
@@ -83,7 +75,7 @@ struct PasteTextView: View {
             if text.isEmpty {
                 Text("Paste a paragraph or two here...")
                     .font(.system(.body, design: .rounded))
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(Theme.textSecondary.opacity(0.6))
                     .padding(.horizontal, 20)
                     .padding(.vertical, 22)
                     .allowsHitTesting(false)
