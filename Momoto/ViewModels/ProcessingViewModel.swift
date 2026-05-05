@@ -22,7 +22,7 @@ final class ProcessingViewModel: ObservableObject {
 
     private let service = TextToNodeService()
     
-    private let maxCharacters = 4000
+    private let maxCharacters = 6000
     
     func generate(from text: String, source: String) async {
         state = .loading
