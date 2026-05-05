@@ -23,15 +23,6 @@ class AppState: ObservableObject {
     @Published var pendingInputText = ""
 }
 
-// MARK: - AppColors
-struct AppColors {
-    static let pageBackground = Color(red: 0.94, green: 0.94, blue: 0.97)
-    static let themePurple    = Color(red: 0.40, green: 0.30, blue: 0.90)
-    static let themeOrange    = Color(red: 0.95, green: 0.65, blue: 0.15)
-    static let themeRed       = Color(red: 0.88, green: 0.30, blue: 0.28)
-    static let themeGreen     = Color(red: 0.28, green: 0.72, blue: 0.42)
-}
-
 typealias ContentView = HomeView
 
 // MARK: - HomeView
@@ -46,7 +37,7 @@ struct HomeView: View {
     var body: some View {
         NavigationStack(path: $appState.path) {
             ZStack {
-                AppColors.pageBackground.ignoresSafeArea()
+                Theme.background.ignoresSafeArea()
                 VStack(spacing: 0) {
                     ScrollView(showsIndicators: false) {
                         VStack(spacing: 36) {
@@ -60,25 +51,25 @@ struct HomeView: View {
                             // 2x2 Grid
                             LazyVGrid(columns: columns, spacing: 16) {
                                 GridCard(
-                                    color: AppColors.themePurple,
+                                    color: Theme.cardPaste,
                                     iconName: "character.cursor.ibeam",
                                     title: "Paste Text"
                                 ) { appState.path.append(AppRoute.paste) }
 
                                 GridCard(
-                                    color: AppColors.themeOrange,
+                                    color: Theme.cardPDF,
                                     iconName: "doc.fill",
                                     title: "Upload PDF"
                                 ) { appState.path.append(AppRoute.pdf) }
 
                                 GridCard(
-                                    color: AppColors.themeRed,
+                                    color: Theme.cardScan,
                                     iconName: "camera.viewfinder",
                                     title: "Scan with Camera"
                                 ) { appState.path.append(AppRoute.scan) }
 
                                 GridCard(
-                                    color: AppColors.themeGreen,
+                                    color: Theme.cardHistory,
                                     iconName: "arrow.triangle.branch",
                                     title: "Past Mindmaps"
                                 ) { appState.path.append(AppRoute.history) }
@@ -141,18 +132,17 @@ struct GridCard: View {
                 Spacer()
                 // Icon box
                 RoundedRectangle(cornerRadius: 16)
-                    .fill(Color.white.opacity(0.25))
+                    .fill(Theme.white.opacity(0.25))
                     .frame(width: 70, height: 70)
                     .overlay(
                         Image(systemName: iconName)
-                            // Scalable dynamic icon size
                             .font(.system(.largeTitle, design: .rounded).weight(.medium))
-                            .foregroundColor(.white)
+                            .foregroundColor(Theme.white)
                     )
 
                 Text(title)
                     .font(.system(.headline, design: .rounded).weight(.semibold))
-                    .foregroundColor(.white)
+                    .foregroundColor(Theme.white)
                     .multilineTextAlignment(.center)
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)

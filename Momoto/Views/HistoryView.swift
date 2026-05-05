@@ -26,18 +26,12 @@ struct HistoryView: View {
     // MARK: Main page
     var body: some View {
         ZStack {
-            Color(red: 0.97, green: 0.97, blue: 0.98)
-                .ignoresSafeArea()
+            Theme.background.ignoresSafeArea()
             
             if history.isEmpty {
                 emptyState
             } else {
-                VStack(spacing: 12) {
-                    searchBar
-                    historyList
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 8)
+                historyList
             }
         }
         .onAppear {
@@ -45,6 +39,7 @@ struct HistoryView: View {
         }
         .navigationTitle("Recent Mindmaps")
         .navigationBarTitleDisplayMode(.large)
+        .searchable(text: $searchText, prompt: "Search mindmap")
         
         // Top right: Delete button
         .toolbar { deleteButton }
@@ -90,11 +85,11 @@ struct HistoryView: View {
         VStack(spacing: 12) {
             Image(systemName: "brain")
                 .font(.system(.largeTitle, design: .rounded).weight(.light))
-                .foregroundStyle(Color(red: 0.45, green: 0.34, blue: 0.92))
+                .foregroundStyle(Theme.purple)
             
             Text("No mindmap available")
                 .font(.system(.subheadline, design: .rounded).weight(.medium))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.textSecondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .padding(.top, 248)
@@ -105,35 +100,16 @@ struct HistoryView: View {
         VStack(spacing: 12) {
             Image(systemName: "magnifyingglass")
                 .font(.system(.largeTitle, design: .rounded).weight(.light))
-                .foregroundStyle(Color(red: 0.45, green: 0.34, blue: 0.92).opacity(0.5))
+                .foregroundStyle(Theme.purple.opacity(0.5))
             
             Text("No results for \"\(searchText)\"")
                 .font(.system(.subheadline, design: .rounded).weight(.medium))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.textSecondary)
         }
         .frame(maxWidth: .infinity)
         .padding(.top, 48)
     }
 
-    // 4. Search bar
-    private var searchBar: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "magnifyingglass")
-                .foregroundStyle(.secondary)
-
-            TextField("Search mindmap", text: $searchText)
-                .textFieldStyle(.plain)
-                .font(.system(.body, design: .rounded))
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
-        .background(Color.white, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .stroke(Color.black.opacity(0.05), lineWidth: 1)
-        )
-    }
-    
     // 5. Toolbar delete button
     @ToolbarContentBuilder
     private var deleteButton: some ToolbarContent {
@@ -141,7 +117,7 @@ struct HistoryView: View {
             ToolbarItem(placement: .topBarTrailing) {
                 Button(action: toggleDeleteMode) {
                     Image(systemName: isDeleteMode ? "xmark" : "trash")
-                        .foregroundStyle(Color(red: 0.45, green: 0.34, blue: 0.92)) //purple
+                        .foregroundStyle(Theme.purple)
                 }
                 .accessibilityLabel(isDeleteMode ? "Cancel delete" : "Delete mindmap")
             }
@@ -153,11 +129,7 @@ struct HistoryView: View {
         Group {
             if isDeleteMode, !selectedDeleteID.isEmpty {
                 Button("Delete Now", role: .destructive, action: deleteSelected)
-                    .font(.system(.headline, design: .rounded).weight(.semibold))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(Color.red, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-                    .foregroundStyle(.white)
+                    .buttonStyle(PrimaryButtonStyle(color: Theme.red, isFullWidth: true))
                     .padding(.horizontal, 20)
                     .padding(.bottom, 8)
             }
