@@ -21,11 +21,14 @@ final class ProcessingViewModel: ObservableObject {
     @Published var state: State = .loading
 
     private let service = TextToNodeService()
-
+    
+    private let maxCharacters = 4000
+    
     func generate(from text: String, source: String) async {
         state = .loading
+        let trimmedText = String(text.prefix(maxCharacters))
         do {
-            let rootNode = try await service.generateMindMap(from: text)
+            let rootNode = try await service.generateMindMap(from: trimmedText)
             let mindMap = MindMap(
                 id: UUID(),
                 title: rootNode.title,
