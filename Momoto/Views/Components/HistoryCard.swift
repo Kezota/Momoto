@@ -23,8 +23,8 @@ struct HistoryCard: View {
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
                         .fill(Color(red: 0.93, green: 0.90, blue: 1.00)) //purple
                         .frame(width: 52, height: 52)
-                    Image(systemName: "brain") // icon per mindmap sementara
-                        .font(.system(size: 22, weight: .semibold))
+                    Image(systemName: entry.root.symbol)
+                        .font(.system(.title2, design: .rounded).weight(.semibold))
                         .foregroundStyle(Color(red: 0.45, green: 0.34, blue: 0.92)) //light purple
                 }
                 
@@ -37,7 +37,6 @@ struct HistoryCard: View {
                         .lineLimit(2)
                     
                     HStack(spacing: 6) {
-                        // Source blom ada di models
                         // Date
                         Text(entry.createdAt, style: .date)
                             .font(.system(.caption, design: .rounded))
@@ -48,7 +47,8 @@ struct HistoryCard: View {
                 // Right: Arrow
                 Spacer(minLength: 0)
                 Image(systemName: isDeleteMode ? (isSelected ? "checkmark.circle.fill" : "circle") : "chevron.right")
-                    .font(.system(size: 14, weight: .semibold))
+                    // Scalable dynamic icon
+                    .font(.system(.subheadline, design: .rounded).weight(.semibold))
                     .foregroundStyle(isSelected ? .red : .secondary)
             }
             // Background

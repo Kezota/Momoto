@@ -78,7 +78,7 @@ struct ProcessingView: View {
                     }
                 
                 Image(systemName: "sparkles")
-                    .font(.system(size: 30))
+                    .font(.system(.largeTitle, design: .rounded))
                     .foregroundColor(themePurple)
             }
             .padding(.bottom, 8)
@@ -86,10 +86,10 @@ struct ProcessingView: View {
             // Dynamic Text Labels
             VStack(spacing: 8) {
                 Text("Generating Mindmap")
-                    .font(.system(size: 24, weight: .bold, design: .rounded))
+                    .font(.system(.title2, design: .rounded).weight(.bold))
                 
                 Text(loadingTexts[textIndex])
-                    .font(.system(size: 16))
+                    .font(.system(.subheadline, design: .rounded))
                     .foregroundColor(.secondary)
                     .id(textIndex)
                     .transition(.opacity.combined(with: .move(edge: .bottom)))
@@ -118,7 +118,7 @@ struct ProcessingView: View {
     private func errorBody(message: String) -> some View {
         VStack(spacing: 20) {
             Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 48))
+                .font(.system(.largeTitle, design: .rounded))
                 .foregroundColor(.orange)
             Text("Something went wrong")
                 .font(.system(.title3, design: .rounded).weight(.bold))

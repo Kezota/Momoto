@@ -243,12 +243,12 @@ private struct NodePopup: View {
                 VStack(alignment: .leading, spacing: 10) {
                     HStack {
                         Text(node.title)
-                            .font(.headline)
+                            .font(.system(.headline, design: .rounded).weight(.bold))
                         Spacer()
                         Button(action: onDismiss) {
                             Image(systemName: "xmark.circle.fill")
                                 .foregroundStyle(.secondary)
-                                .font(.title3)
+                                .font(.system(.title3, design: .rounded))
                         }
                     }
 
@@ -256,13 +256,13 @@ private struct NodePopup: View {
 
                     if let summary = node.summary, !summary.isEmpty {
                         Text(summary)
-                            .font(.subheadline)
+                            .font(.system(.subheadline, design: .rounded))
                             .foregroundStyle(.secondary)
                             .lineSpacing(3)
                             .fixedSize(horizontal: false, vertical: true)
                     } else {
                         Text("Tidak ada ringkasan.")
-                            .font(.subheadline)
+                            .font(.system(.subheadline, design: .rounded))
                             .foregroundStyle(.secondary)
                     }
                 }
