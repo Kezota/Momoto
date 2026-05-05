@@ -8,9 +8,15 @@
 import SwiftUI
 
 struct MindMapView: View {
-
-    @StateObject private var viewModel = MindmapViewModel()
-
+    @EnvironmentObject private var appState: AppState
+    let mindMap: MindMap
+    @StateObject private var viewModel: MindmapViewModel
+    
+    init(mindMap: MindMap) {
+        self.mindMap = mindMap
+        _viewModel = StateObject(wrappedValue: MindmapViewModel(mindMap: mindMap))
+    }
+    
     // Layout di-cache agar tidak recompute setiap frame saat pinch
     @State private var cachedLayout: LayoutResult = LayoutResult(positions: [:], totalHeight: 0)
 
@@ -89,6 +95,18 @@ struct MindMapView: View {
                 }
         )
         .animation(.easeInOut(duration: 0.2), value: poppedNode?.id)
+        .navigationBarBackButtonHidden(true)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button {
+                    appState.path = NavigationPath()
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "chevron.left")
+                    }
+                }
+            }
+        }
         .onAppear {
             cachedLayout = buildLayout(node: viewModel.mindMap.root, depth: 0, startY: 0)
         }
@@ -260,5 +278,8 @@ private struct NodePopup: View {
 }
 
 #Preview {
-    MindMapView()
+    let node = MindMapNode(title: "Preview", symbol: "star", summary: "Preview node", children: [], isExpanded: true)
+    let map = MindMap(id: UUID(), title: "Preview", root: node, rawText: "", createdAt: .now, source: "Preview")
+    
+    MindMapView(mindMap: map)
 }
