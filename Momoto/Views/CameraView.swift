@@ -26,7 +26,6 @@ struct CameraView: View {
     @StateObject private var camera = CameraSessionService()
     @StateObject private var ocr    = OCRViewModel()
     @State private var capturedImage: UIImage?
-    @Environment(\.dismiss) private var dismiss
                                                                                                                 
     var body: some View {
         ZStack {
@@ -216,7 +215,6 @@ struct CameraView: View {
         let text = ocr.scannedText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
         onTextCaptured(text)
-        dismiss()
     }
 }
 
