@@ -12,7 +12,7 @@ enum AppRoute: Hashable {
     case pdf
     case paste
     case processing
-    case mindmap
+    case mindmap(MindMap)
     case chatbot
     case history
 }
@@ -20,6 +20,7 @@ enum AppRoute: Hashable {
 // MARK: - AppState
 class AppState: ObservableObject {
     @Published var path = NavigationPath()
+    @Published var pendingInputText = ""
 }
 
 // MARK: - AppColors
@@ -91,28 +92,35 @@ struct HomeView: View {
             .navigationBarHidden(true)
             .navigationDestination(for: AppRoute.self) { route in
                 switch route {
-                case .scan:       CameraView { capturedText in
-                                    appState.path.append(AppRoute.processing)
-                                }
-                case .pdf:        UploadFileView { extractedText in
-                                        appState.path.append(AppRoute.processing)
-                                    }
-                case .paste:      PasteTextView { submittedText in
-                                        appState.path.append(AppRoute.processing)
-                                    }
+                case .scan:
+                    CameraView { capturedText in
+                        appState.pendingInputText = capturedText
+                        appState.path.append(AppRoute.processing)
+                    }
+
+                case .pdf:
+                    UploadFileView { extractedText in
+                        appState.pendingInputText = extractedText
+                        appState.path.append(AppRoute.processing)
+                    }
+
+                case .paste:
+                    PasteTextView { submittedText in
+                        appState.pendingInputText = submittedText
+                        appState.path.append(AppRoute.processing)
+                    }
                 case .processing: ProcessingView()
-                case .mindmap:    MindMapView()
+                case .mindmap(let mindMap): MindMapView(mindMap: mindMap)
                 case .chatbot:    EmptyView()
-                case .history:    HistoryView(
-                                        history: [],
-                                        onTap: { item in
-                                            // Navigate to mindmap or processing as needed
-                                            appState.path.append(AppRoute.mindmap)
-                                        },
-                                        onDelete: { indexSet in
-                                            // Handle deletion if needed
-                                        }
-                                    )
+                case .history:
+                    HistoryView(
+                        onTap: { item in
+                            appState.path.append(AppRoute.mindmap(item))
+                        },
+                        onDelete: { id in
+                            HistoryService.shared.delete(id: id)
+                        }
+                    )
                 }
             }
         }
