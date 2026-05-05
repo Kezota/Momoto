@@ -145,12 +145,13 @@ struct GridCard: View {
                     .frame(width: 70, height: 70)
                     .overlay(
                         Image(systemName: iconName)
-                            .font(.system(size: 32, weight: .medium))
+                            // Scalable dynamic icon size
+                            .font(.system(.largeTitle, design: .rounded).weight(.medium))
                             .foregroundColor(.white)
                     )
 
                 Text(title)
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(.system(.headline, design: .rounded).weight(.semibold))
                     .foregroundColor(.white)
                     .multilineTextAlignment(.center)
                     .lineLimit(2)

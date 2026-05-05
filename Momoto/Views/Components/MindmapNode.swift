@@ -21,8 +21,8 @@ struct MindmapNodeView: View {
     var body: some View {
         HStack(spacing: 8) {
             Text(node.title)
-                .font(.system(size: depth == 0 ? 16 : 14,
-                              weight: depth == 0 ? .bold : .semibold))
+                .font(.system(depth == 0 ? .headline : .subheadline, design: .rounded))
+                .fontWeight(depth == 0 ? .bold : .semibold)
                 .lineLimit(2)
                 .minimumScaleFactor(0.85)
                 .multilineTextAlignment(.leading)
@@ -33,7 +33,7 @@ struct MindmapNodeView: View {
             // Show chevron only when the node has children
             if !node.children.isEmpty {
                 Image(systemName: node.isExpanded ? "chevron.down" : "chevron.right")
-                    .font(.caption.weight(.bold))
+                    .font(.system(.caption, design: .rounded).weight(.bold))
                     .foregroundStyle(.secondary)
             }
         }
