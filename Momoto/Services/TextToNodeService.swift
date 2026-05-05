@@ -5,6 +5,7 @@
 //  Created by Teresa Tendeas on 04/05/26.
 //
 
+import UIKit
 import Foundation
 import FoundationModels
 
@@ -75,7 +76,7 @@ final class TextToNodeService {
         - Maximum 3 levels deep: root → branches → leaves.
         - Every title MUST be 1–3 words (concise label, not a sentence).
         - Every summary MUST be exactly 1 short sentence (max 15 words).
-        - Every symbol MUST be a valid SF Symbols name (e.g. "star", "bolt", "leaf", "circle", "heart", "flag", "book", "lightbulb", "cpu", "network", "person", "cloud", "lock", "globe", "chart.bar").
+        - Every symbol MUST be a real SF Symbols name that exists in iOS 17. Use only base names without suffixes like .fill, .circle, or .slash unless you are 100% certain the exact full name exists in SF Symbols.  (e.g. "star", "bolt", "leaf", "circle", "heart", "flag", "book", "lightbulb", "cpu", "network", "person", "cloud", "lock", "globe", "chart.bar").
         - No duplicate titles anywhere in the tree.
         - No generic filler nodes like "Introduction" or "Conclusion".
         - Children array must exist on every node (use [] if no children).
@@ -121,10 +122,12 @@ final class TextToNodeService {
     }
 
     private func map(dto: NodeDTO) -> MindMapNode {
-        MindMapNode(
+        let rawSymbol = dto.symbol ?? "circle"
+        let validatedSymbol = UIImage(systemName: rawSymbol) != nil ? rawSymbol : "circle"
+        return MindMapNode(
             id: UUID(),
             title: dto.title,
-            symbol: dto.symbol ?? "circle",
+            symbol: validatedSymbol,
             summary: dto.summary ?? "",
             children: (dto.children ?? []).map { map(dto: $0) },
             isExpanded: true
