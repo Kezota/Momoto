@@ -4,6 +4,7 @@
 //
 //  Created by Kezia Meilany Tandapai on 01/05/26.
 //
+
 #if canImport(FoundationModels)
 import FoundationModels
 #endif
@@ -15,7 +16,8 @@ struct ModelContext {
     var selectedNodeTitle: String?
 }
 
-actor FoundationModelService {
+actor ChatbotService {
+    
     func keywordExplanation(_ keyword: String, context: ModelContext) async -> String {
         let prompt = """
         Right now you are helping a dyslexic person to understand a passage that is scanned. The passage is: 
@@ -47,46 +49,56 @@ actor FoundationModelService {
             \(question)
             Please explain with a short 1-3 sentences. Maybe make a bullet point if possible but still explain it in short.
             """
+        
         return await generate(prompt: prompt, fallback: fallbackChat(for: question, context: context))
     }
+    
     private func generate(prompt: String, fallback: String) async -> String {
-          #if canImport(FoundationModels)
-          if #available(iOS 26.0, *) {
-              do {
-                  let session = LanguageModelSession()
-                  let response = try await session.respond(to: prompt)
-                  let content = response.content.trimmingCharacters(in: .whitespacesAndNewlines)
-                  return content.isEmpty ? fallback : content
-              } catch {
-                  return fallback
-              }
-          }
-          #endif
-          return fallback
-      }
+    #if canImport(FoundationModels)
+        if #available(iOS 26.0, *) {
+            do {
+                let session = LanguageModelSession()
+                let response = try await session.respond(to: prompt)
+                let content = response.content.trimmingCharacters(in: .whitespacesAndNewlines)
+                return content.isEmpty ? fallback : content
+            } catch {
+                return fallback
+            }
+        }
+    #endif
+        return fallback
     }
-    private func fallbackExplanation(for keyword: String, context: ModelContext) -> String {
-        let sentences = context.rawText
-            .components(separatedBy: CharacterSet(charactersIn: ".!?"))
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines)}
-            .filter { !$0.isEmpty }
-        if let match = sentences.first(where: {$0.lowercased().contains(keyword.lowercased())}) {
-            return "\(keyword.capitalized) is one of the key ideas in this passage"
-        }
-        return "\(keyword.capitalized) is one of the key ideas in this passage."
-    }
-    private func fallbackChat(for question: String, context: ModelContext) -> String {
-        let lower = question.lowercased()
-        if lower.contains("main") || lower.contains("point") {
-            return "The main point is: \(context.hierarchyOutline.split(separator: "\n").first.map(String.init) ?? "the scanned text")."
-        }
-        if lower.contains("summar") {
-            let preview = context.rawText.split(separator: ".").prefix(2).joined(separator: ". ")
-            return preview.isEmpty ? "There isn't enough text to summarise yet." : "\(preview)."
-        }
-        if let focus = context.selectedNodeTitle {
-            return "The branch \"\(focus)\" is about one of the ideas in the passage. Tap to expand it and long-press for a short explanation."
-        }
-        return "Try long-pressing a branch for a one-line explanation, or ask me for a summary."
+}
+
+private func fallbackExplanation(for keyword: String, context: ModelContext) -> String {
+    let sentences = context.rawText
+        .components(separatedBy: CharacterSet(charactersIn: ".!?"))
+        .map { $0.trimmingCharacters(in: .whitespacesAndNewlines)}
+        .filter { !$0.isEmpty }
+    
+    if let match = sentences.first(where: {$0.lowercased().contains(keyword.lowercased())}) {
+        return "\(keyword.capitalized) is one of the key ideas in this passage"
     }
     
+    return "\(keyword.capitalized) is one of the key ideas in this passage."
+}
+
+private func fallbackChat(for question: String, context: ModelContext) -> String {
+    let lower = question.lowercased()
+    
+    if lower.contains("main") || lower.contains("point") {
+        return "The main point is: \(context.hierarchyOutline.split(separator: "\n").first.map(String.init) ?? "the scanned text")."
+    }
+    
+    if lower.contains("summar") {
+        let preview = context.rawText.split(separator: ".").prefix(2).joined(separator: ". ")
+        return preview.isEmpty ? "There isn't enough text to summarise yet." : "\(preview)."
+    }
+    
+    if let focus = context.selectedNodeTitle {
+        return "The branch \"\(focus)\" is about one of the ideas in the passage. Tap to expand it and long-press for a short explanation."
+    }
+    
+    return "Try long-pressing a branch for a one-line explanation, or ask me for a summary."
+}
+
