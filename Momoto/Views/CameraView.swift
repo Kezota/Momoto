@@ -10,10 +10,7 @@ import UIKit
 
 struct CameraView: View {
     let onTextCaptured: (String) -> Void
-
-    @StateObject private var camera = CameraSessionService()
-    @StateObject private var ocr    = OCRViewModel()
-    @State private var capturedImage: UIImage?
+    @StateObject private var viewModel = CameraViewModel()
                                                                                                                 
     var body: some View {
         ZStack {
@@ -30,18 +27,18 @@ struct CameraView: View {
         }
         .navigationTitle("Scan with Camera")
         .navigationBarTitleDisplayMode(.large)
-        .onAppear { camera.bootstrap() }
-        .onDisappear { camera.stop() }
+        .onAppear { viewModel.bootstrap() }
+        .onDisappear { viewModel.stop() }
         .alert(
             "Couldn't read the text",
             isPresented: Binding(
-                get: { ocr.errorMessage != nil },
-                set: { if !$0 { ocr.errorMessage = nil } }
+                get: { viewModel.hasError },
+                set: { if !$0 { viewModel.dismissError() } }
             )
         ) {
             Button("OK", role: .cancel) {}
         } message: {
-            Text(ocr.errorMessage ?? "")
+            Text(viewModel.ocr.errorMessage ?? "")
         }
     }
 
@@ -51,11 +48,11 @@ struct CameraView: View {
     private var cameraArea: some View {
         ZStack(alignment: .bottom) {
             Group {
-                if let capturedImage {
+                if let capturedImage = viewModel.capturedImage {
                     Image(uiImage: capturedImage).resizable().scaledToFill()
-                } else if camera.accessState == .allowed {
-                    CameraPreview(session: camera.session)
-                } else if camera.accessState == .denied {
+                } else if viewModel.camera.accessState == .allowed {
+                    CameraPreview(session: viewModel.camera.session)
+                } else if viewModel.camera.accessState == .denied {
                     deniedState
                 } else {
                     ProgressView().tint(Theme.white)
@@ -97,9 +94,9 @@ struct CameraView: View {
                 .foregroundStyle(Theme.textSecondary)
 
             ScrollView {
-                Text(displayText)
+                Text(viewModel.displayText)
                     .font(.system(.subheadline, design: .rounded))
-                    .foregroundStyle(ocr.scannedText.isEmpty ? Theme.textSecondary : Theme.textPrimary)
+                    .foregroundStyle(viewModel.ocr.scannedText.isEmpty ? Theme.textSecondary : Theme.textPrimary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(14)
             }
@@ -110,72 +107,42 @@ struct CameraView: View {
         }
     }
 
-    private var displayText: String {
-        if ocr.isProcessing { return "Reading text…" }
-        if ocr.scannedText.isEmpty { return "Tap the shutter to capture text." }
-        return ocr.scannedText
-    }
-
     // MARK: - Buttons
 
     private var buttonRow: some View {
         HStack(spacing: 12) {
-            Button("Clear", action: clear)
+            Button("Clear", action: viewModel.clear)
                 .buttonStyle(SecondaryButtonStyle(color: Theme.red))
-                .disabled(capturedImage == nil && ocr.scannedText.isEmpty)
+                .disabled(viewModel.clearDisabled)
 
             Spacer()
 
-            Button(action: handleGenerate) {
+            Button(action: { viewModel.handleGenerate(onTextCaptured: onTextCaptured) }) {
                 HStack(spacing: 6) {
                     Text("Make the Mindmap")
                     Image(systemName: "arrow.right")
                 }
             }
             .buttonStyle(PrimaryButtonStyle(color: Theme.red, isFullWidth: false))
-            .disabled(generateDisabled)
+            .disabled(viewModel.generateDisabled)
         }
-    }
-
-    private var generateDisabled: Bool {
-        ocr.scannedText.trimmingCharacters(in: .whitespacesAndNewlines).count < 10
     }
 
     // MARK: - Shutter
 
     private var shutter: some View {
-        Button(action: handleShutter) {
+        Button(action: viewModel.handleShutter) {
             ZStack {
                 Circle().stroke(Theme.white, lineWidth: 4).frame(width: 78, height: 78)
                 Circle().fill(Theme.white).frame(width: 62, height: 62).shadow(color: Theme.black.opacity(0.25), radius: 6, y: 3)
-                if ocr.isProcessing { ProgressView().tint(Theme.red) }
+                if viewModel.ocr.isProcessing { ProgressView().tint(Theme.red) }
             }
         }
-        .disabled(camera.accessState != .allowed || ocr.isProcessing)
-        .opacity(camera.accessState != .allowed ? 0.55 : 1)
+        .disabled(viewModel.camera.accessState != .allowed || viewModel.ocr.isProcessing)
+        .opacity(viewModel.camera.accessState != .allowed ? 0.55 : 1)
     }
                                                                                                                     
-    // MARK: - Actions
 
-    private func handleShutter() {
-        Task {
-            guard let image = await camera.capturePhoto() else { return }
-            capturedImage = image
-            _ = await ocr.processScannedPages([image])
-        }
-    }
-
-    private func clear() {
-        capturedImage = nil
-        ocr.scannedText = ""
-        ocr.errorMessage = nil
-    }
-
-    private func handleGenerate() {
-        let text = ocr.scannedText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty else { return }
-        onTextCaptured(text)
-    }
 }
 
 #Preview {

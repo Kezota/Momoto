@@ -9,11 +9,10 @@ import SwiftUI
 import UIKit
 
 struct PasteTextView: View {
-    @State private var text = ""
+    @StateObject private var viewModel = PasteTextViewModel()
     @FocusState private var editorFocused: Bool
     
     var onSubmit: (String) -> Void
-    private let minChars = 40
 
     var body: some View {
         ZStack {
@@ -31,7 +30,7 @@ struct PasteTextView: View {
 
                 Button("Generate Mindmap", action: submit)
                     .buttonStyle(PrimaryButtonStyle(color: Theme.purple, isFullWidth: true))
-                    .disabled(text.count < minChars)
+                    .disabled(viewModel.isSubmitDisabled)
             }
             .padding(.horizontal, 20)
             .padding(.top, 12)
@@ -57,14 +56,14 @@ struct PasteTextView: View {
                 )
                 .shadow(color: Theme.black.opacity(0.04), radius: 12, x: 0, y: 6)
 
-            TextEditor(text: $text)
+            TextEditor(text: $viewModel.text)
                 .font(.system(.body, design: .rounded))
                 .foregroundStyle(Theme.textPrimary)
                 .padding(14)
                 .scrollContentBackground(.hidden)
                 .focused($editorFocused)
 
-            if text.isEmpty {
+            if viewModel.text.isEmpty {
                 Text("Paste a paragraph or two here...")
                     .font(.system(.body, design: .rounded))
                     .foregroundStyle(Theme.textSecondary.opacity(0.6))
@@ -77,9 +76,8 @@ struct PasteTextView: View {
     }
 
     private func submit() {
-        guard text.count >= minChars else { return }
         editorFocused = false
-        onSubmit(text)
+        viewModel.submit(onSubmit: onSubmit)
     }
 }
 

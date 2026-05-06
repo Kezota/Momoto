@@ -86,8 +86,7 @@ struct HomeView: View {
                     EmptyView()
                 case .history:
                     HistoryView(
-                        onTap: { appState.path.append(AppRoute.mindmap($0)) },
-                        onDelete: { HistoryService.shared.delete(id: $0) }
+                        onTap: { appState.path.append(AppRoute.mindmap($0)) }
                     )
                 }
             }

@@ -9,8 +9,8 @@ import SwiftUI
 
 struct MindMapView: View {
     @EnvironmentObject private var appState: AppState
-    let mindMap: MindMap
     @StateObject private var viewModel: MindmapViewModel
+    let mindMap: MindMap
     
     init(mindMap: MindMap) {
         self.mindMap = mindMap
@@ -68,22 +68,13 @@ struct MindMapView: View {
         .contentShape(Rectangle())
         .simultaneousGesture(
             DragGesture(minimumDistance: 15)
-                .updating($dragDelta) { value, state, _ in
-                    state = value.translation
-                }
-                .onEnded { value in
-                    offset.width  += value.translation.width
-                    offset.height += value.translation.height
-                }
+                .updating($dragDelta) { value, state, _ in state = value.translation }
+                .onEnded { offset.width += $0.translation.width; offset.height += $0.translation.height }
         )
         .simultaneousGesture(
             MagnificationGesture()
-                .updating($pinchDelta) { value, state, _ in
-                    state = value
-                }
-                .onEnded { value in
-                    scale = min(max(scale * value, 0.4), 2.5)
-                }
+                .updating($pinchDelta) { value, state, _ in state = value }
+                .onEnded { scale = min(max(scale * $0, 0.4), 2.5) }
         )
         .animation(.easeInOut(duration: 0.2), value: poppedNode?.id)
         .navigationBarBackButtonHidden(true)
@@ -182,37 +173,27 @@ struct MindMapView: View {
 
         if node.isExpanded && !node.children.isEmpty {
             var childY = startY
-            var childPositions: [UUID: NodePosition] = [:]
 
             for child in node.children {
                 let result = buildLayout(node: child, depth: depth + 1, startY: childY, parentID: node.id)
-                childPositions.merge(result.positions) { _, new in new }
+                positions.merge(result.positions) { _, new in new }
                 childY += result.totalHeight + rowSpacing
             }
 
             let subtreeHeight = childY - startY - rowSpacing
             let centreY = startY + subtreeHeight / 2 - MindmapNodeView.height / 2
 
-            positions[node.id] = NodePosition(id: node.id, node: node, depth: depth,
-                                              origin: CGPoint(x: x, y: centreY),
-                                              parentID: parentID)
-            positions.merge(childPositions) { _, new in new }
+            positions[node.id] = NodePosition(id: node.id, node: node, depth: depth, origin: CGPoint(x: x, y: centreY), parentID: parentID)
             return LayoutResult(positions: positions, totalHeight: subtreeHeight)
         } else {
-            positions[node.id] = NodePosition(id: node.id, node: node, depth: depth,
-                                              origin: CGPoint(x: x, y: startY),
-                                              parentID: parentID)
+            positions[node.id] = NodePosition(id: node.id, node: node, depth: depth, origin: CGPoint(x: x, y: startY), parentID: parentID)
             return LayoutResult(positions: positions, totalHeight: MindmapNodeView.height)
         }
     }
 
     private func canvasSize(positions: [UUID: NodePosition]) -> CGSize {
-        var maxX: CGFloat = 0
-        var maxY: CGFloat = 0
-        for pos in positions.values {
-            maxX = max(maxX, pos.origin.x + MindmapNodeView.width)
-            maxY = max(maxY, pos.origin.y + MindmapNodeView.height)
-        }
+        let maxX = positions.values.map { $0.origin.x + MindmapNodeView.width }.max() ?? 0
+        let maxY = positions.values.map { $0.origin.y + MindmapNodeView.height }.max() ?? 0
         return CGSize(width: maxX, height: maxY)
     }
 }
@@ -243,17 +224,11 @@ private struct NodePopup: View {
 
                     Divider()
 
-                    if let summary = node.summary, !summary.isEmpty {
-                        Text(summary)
-                            .font(.system(.subheadline, design: .rounded))
-                            .foregroundStyle(Theme.textSecondary)
-                            .lineSpacing(3)
-                            .fixedSize(horizontal: false, vertical: true)
-                    } else {
-                        Text("Tidak ada ringkasan.")
-                            .font(.system(.subheadline, design: .rounded))
-                            .foregroundStyle(Theme.textSecondary)
-                    }
+                    Text((node.summary?.isEmpty == false) ? node.summary! : "Tidak ada ringkasan.")
+                        .font(.system(.subheadline, design: .rounded))
+                        .foregroundStyle(Theme.textSecondary)
+                        .lineSpacing(3)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 .padding(16)
                 .frame(maxWidth: 300)
