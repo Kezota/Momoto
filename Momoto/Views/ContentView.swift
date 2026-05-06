@@ -15,6 +15,7 @@ enum AppRoute: Hashable {
     case mindmap(MindMap)
     case chatbot
     case history
+    case photo
 }
 
 // MARK: - AppState
@@ -36,7 +37,7 @@ struct HomeView: View {
 
     var body: some View {
         NavigationStack(path: $appState.path) {
-            ZStack {
+            ZStack(alignment: .topTrailing) {
                 Theme.background.ignoresSafeArea()
                 
                 ScrollView(showsIndicators: false) {
@@ -60,14 +61,26 @@ struct HomeView: View {
                             GridCard(color: Theme.cardScan, iconName: "camera.viewfinder", title: "Scan with Camera") {
                                 appState.path.append(AppRoute.scan)
                             }
-                            GridCard(color: Theme.cardHistory, iconName: "arrow.triangle.branch", title: "Past Mindmaps") {
-                                appState.path.append(AppRoute.history)
+                            GridCard(color: Theme.cardHistory, iconName: "photo.fill", title: "Use Photo") {
+                                appState.path.append(AppRoute.photo)
                             }
                         }
                         .padding(.horizontal, 20)
                         .padding(.bottom, 32)
                     }
                 }
+                
+                Button(action: { appState.path.append(AppRoute.history) }) {
+                    Image(systemName: "clock.arrow.circlepath")
+                        .font(.system(.title3, design: .rounded).weight(.semibold))
+                        .foregroundStyle(Theme.purple)
+                        .padding(14)
+                        .background(Theme.white)
+                        .clipShape(Circle())
+                        .shadow(color: Theme.black.opacity(0.08), radius: 8, x: 0, y: 4)
+                }
+                .padding(.trailing, 20)
+                .padding(.top, 16)
             }
             .navigationBarHidden(true)
             .navigationDestination(for: AppRoute.self) { route in
@@ -76,6 +89,8 @@ struct HomeView: View {
                     CameraView(onTextCaptured: processInput)
                 case .pdf:
                     UploadFileView(onTextExtracted: processInput)
+                case .photo:
+                    UploadPhotoView(onTextExtracted: processInput)
                 case .paste:
                     PasteTextView(onSubmit: processInput)
                 case .processing:

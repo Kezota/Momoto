@@ -35,7 +35,7 @@ struct MindmapNodeView: View {
 
             // Show chevron only when the node has children
             if !node.children.isEmpty {
-                Image(systemName: node.isExpanded ? "chevron.down" : "chevron.right")
+                Image(systemName: node.isExpanded ? "chevron.left" : "chevron.right")
                     .font(.system(.caption, design: .rounded).weight(.bold))
                     .foregroundStyle(Theme.textSecondary)
             }

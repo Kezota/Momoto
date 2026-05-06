@@ -28,8 +28,7 @@ final class ProcessingViewModel: ObservableObject {
     let loadingTexts = [
         "Reading your content",
         "Identifying key concept",
-        "Building node hierarchy",
-        "Finalising Mindmap"
+        "Structuring mindmap"
     ]
 
     var currentLoadingText: String {
@@ -42,7 +41,7 @@ final class ProcessingViewModel: ObservableObject {
         timerTask?.cancel()
         timerTask = Task {
             while !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: 2_000_000_000)
+                try? await Task.sleep(nanoseconds: 1_500_000_000)
                 if Task.isCancelled { break }
                 if textIndex < loadingTexts.count - 1 { textIndex += 1 }
             }

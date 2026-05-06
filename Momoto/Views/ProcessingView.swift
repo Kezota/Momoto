@@ -72,7 +72,7 @@ struct ProcessingView: View {
             
             // Step Indicator
             HStack(spacing: 8) {
-                ForEach(0..<4) { index in
+                ForEach(0..<2) { index in
                     Capsule()
                         .frame(width: index <= viewModel.textIndex ? 35 : 12, height: 8)
                         .foregroundColor(index <= viewModel.textIndex ? Theme.purple : Theme.stroke)

@@ -30,14 +30,31 @@ struct MindMapView: View {
 
     // Popup long-press
     @State private var poppedNode: MindMapNode? = nil
-
+    @State private var showChat: Bool = false
+    
     private let columnSpacing: CGFloat = 60
     private let rowSpacing: CGFloat = 20
 
     private var liveScale: CGFloat {
         min(max(scale * pinchDelta, 0.4), 2.5)
     }
-
+    private var chatFab: some View {
+        Button {
+            showChat = true
+        } label: {
+            Image(systemName: "bubble.left.and.bubble.right.fill")
+                .font(.system(size: 22, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(width: 70, height: 100)
+                .background(
+                    Circle().fill(Color.purple)
+                )
+                .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 4)
+        }
+        .buttonStyle(.plain)
+    }
+    
+    
     private var liveOffset: CGSize {
         CGSize(width: offset.width + dragDelta.width,
                height: offset.height + dragDelta.height)
@@ -46,21 +63,61 @@ struct MindMapView: View {
     var body: some View {
         let contentSize = canvasSize(positions: cachedLayout.positions)
 
-        ZStack {
-            Theme.white
+        GeometryReader { geometry in
+            ZStack {
+                Theme.white
+                    .ignoresSafeArea()
 
-            ZStack(alignment: .topLeading) {
-                lineLayer(positions: cachedLayout.positions, size: contentSize)
-                nodeLayer(positions: cachedLayout.positions)
-            }
-            .scaleEffect(liveScale, anchor: .topLeading)
-            .offset(liveOffset)
-
-            if let node = poppedNode {
-                NodePopup(node: node) {
-                    withAnimation(.easeInOut(duration: 0.2)) { poppedNode = nil }
+                // Mindmap Content Layer
+                ZStack(alignment: .topLeading) {
+                    lineLayer(positions: cachedLayout.positions, size: contentSize)
+                    nodeLayer(positions: cachedLayout.positions)
                 }
-                .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                .scaleEffect(liveScale, anchor: .topLeading)
+                .offset(liveOffset)
+                // Constrain the layout size to the viewport to prevent the parent from expanding
+                .frame(width: geometry.size.width, height: geometry.size.height, alignment: .topLeading)
+
+                // Info Overlay (Fixed Position)
+                VStack {
+                    HStack(spacing: 8) {
+                        Image(systemName: "info.circle.fill")
+                            .foregroundStyle(Theme.purple)
+                        Text("Hold any node to view its summary")
+                            .font(.system(.footnote, design: .rounded).weight(.medium))
+                            .foregroundStyle(Theme.textPrimary)
+                    }
+                    .padding(.vertical, 10)
+                    .padding(.horizontal, 16)
+                    .background(.ultraThinMaterial, in: Capsule())
+                    .shadow(color: Theme.black.opacity(0.05), radius: 10, y: 4)
+                    .padding(.top, 110)
+                    .opacity(poppedNode == nil ? 1 : 0)
+                    .animation(.easeInOut(duration: 0.2), value: poppedNode)
+                    .allowsHitTesting(false)
+                    
+                    Spacer()
+                }
+
+                // Chat FAB (Fixed Position)
+                VStack {
+                    Spacer()
+                    HStack {
+                        Spacer()
+                        chatFab
+                            .padding(.trailing, 20)
+                            .padding(.bottom, 34)
+                    }
+                }
+                .ignoresSafeArea(edges: .bottom)
+
+                // Node Popup
+                if let node = poppedNode {
+                    NodePopup(node: node) {
+                        withAnimation(.easeInOut(duration: 0.2)) { poppedNode = nil }
+                    }
+                    .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -89,28 +146,16 @@ struct MindMapView: View {
                 }
             }
         }
+        .sheet(isPresented: $showChat) {
+            NavigationStack {
+                ChatbotView(context: viewModel.modelContext)
+            }
+        }
         .onAppear {
             cachedLayout = buildLayout(node: viewModel.mindMap.root, depth: 0, startY: 0)
         }
         .onChange(of: viewModel.mindMap) { _, _ in
             cachedLayout = buildLayout(node: viewModel.mindMap.root, depth: 0, startY: 0)
-        }
-        .overlay(alignment: .bottom) {
-            if poppedNode == nil {
-                HStack(spacing: 8) {
-                    Image(systemName: "info.circle.fill")
-                        .foregroundStyle(Theme.purple)
-                    Text("Hold any node to view its summary")
-                        .font(.system(.footnote, design: .rounded).weight(.medium))
-                        .foregroundStyle(Theme.textPrimary)
-                }
-                .padding(.vertical, 10)
-                .padding(.horizontal, 16)
-                .background(.ultraThinMaterial, in: Capsule())
-                .shadow(color: Theme.black.opacity(0.05), radius: 10, y: 4)
-                .padding(.bottom, 30)
-                .transition(.opacity.combined(with: .move(edge: .bottom)))
-            }
         }
     }
 
@@ -136,8 +181,8 @@ struct MindMapView: View {
                     control2: CGPoint(x: midX, y: endY)
                 )
                 context.stroke(path,
-                               with: .color(Theme.stroke),
-                               style: StrokeStyle(lineWidth: 1.5, lineCap: .round))
+                               with: .color(Theme.textSecondary.opacity(0.6)),
+                               style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
             }
         }
         .frame(width: size.width, height: size.height)
@@ -220,7 +265,7 @@ struct MindMapView: View {
 private struct NodePopup: View {
     let node: MindMapNode
     let onDismiss: () -> Void
-
+    
     var body: some View {
         Theme.black.opacity(0.15)
             .ignoresSafeArea()
@@ -238,9 +283,9 @@ private struct NodePopup: View {
                                 .font(.system(.title3, design: .rounded))
                         }
                     }
-
+                    
                     Divider()
-
+                    
                     Text((node.summary?.isEmpty == false) ? node.summary! : "Tidak ada ringkasan.")
                         .font(.system(.subheadline, design: .rounded))
                         .foregroundStyle(Theme.textSecondary)

@@ -14,7 +14,7 @@ enum Theme {
     // ──────────────────────────────────────────
 
     static let purple  = Color(hex: "634CE6")
-    static let red     = Color(hex: "E04C4A")
+    static let red     = Color(hex: "FF4E6B")
     static let green   = Color(hex: "46B76B")
     static let yellow  = Color(hex: "F3A528")
 
