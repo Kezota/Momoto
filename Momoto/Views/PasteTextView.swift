@@ -9,54 +9,37 @@ import SwiftUI
 import UIKit
 
 struct PasteTextView: View {
-    @State private var text: String = ""
+    @StateObject private var viewModel = PasteTextViewModel()
     @FocusState private var editorFocused: Bool
     
     var onSubmit: (String) -> Void
 
-    private let minChars = 40
-
     var body: some View {
         ZStack {
-            Color(uiColor: UIColor.systemGroupedBackground).ignoresSafeArea()
+            Theme.background.ignoresSafeArea()
 
             VStack(spacing: 24) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Paste your text")
-                        .font(.system(.largeTitle, design: .rounded).weight(.bold))
-                    Text("We'll summarise it into an interactive mindmap.")
-                        .font(.system(.subheadline, design: .rounded))
-                        .foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
+                Text("We'll summarise it into an interactive mindmap.")
+                    .font(.system(.subheadline, design: .rounded))
+                    .foregroundStyle(Theme.textSecondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
 
                 editorCard
 
                 Spacer(minLength: 0)
 
-                Button {
-                    submit()
-                } label: {
-                    Text("Generate Mindmap")
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(.purple)
-                .buttonBorderShape(.capsule)
-                .controlSize(.large)
-                .disabled(text.count < minChars)
-                .opacity(text.count < minChars ? 0.55 : 1.0)
+                Button("Generate Mindmap", action: submit)
+                    .buttonStyle(PrimaryButtonStyle(color: Theme.purple, isFullWidth: true))
+                    .disabled(viewModel.isSubmitDisabled)
             }
             .padding(.horizontal, 20)
             .padding(.top, 12)
             .padding(.bottom, 24)
         }
-        .navigationBarTitleDisplayMode(.inline)
+        .navigationTitle("Paste your text")
+        .navigationBarTitleDisplayMode(.large)
         .toolbar {
-            ToolbarItem(placement: .keyboard) {
-                Spacer()
-            }
+            ToolbarItem(placement: .keyboard) { Spacer() }
             ToolbarItem(placement: .keyboard) {
                 Button("Done") { editorFocused = false }
             }
@@ -66,24 +49,24 @@ struct PasteTextView: View {
     private var editorCard: some View {
         ZStack(alignment: .topLeading) {
             RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(Color(uiColor: UIColor.secondarySystemGroupedBackground))
+                .fill(Theme.white)
                 .overlay(
                     RoundedRectangle(cornerRadius: 22, style: .continuous)
-                        .stroke(Color.black.opacity(0.06), lineWidth: 1)
+                        .stroke(Theme.stroke, lineWidth: 1)
                 )
-                .shadow(color: Color.black.opacity(0.05), radius: 12, x: 0, y: 6)
+                .shadow(color: Theme.black.opacity(0.04), radius: 12, x: 0, y: 6)
 
-            TextEditor(text: $text)
+            TextEditor(text: $viewModel.text)
                 .font(.system(.body, design: .rounded))
-                .padding(.horizontal, 14)
-                .padding(.vertical, 14)
+                .foregroundStyle(Theme.textPrimary)
+                .padding(14)
                 .scrollContentBackground(.hidden)
                 .focused($editorFocused)
 
-            if text.isEmpty {
+            if viewModel.text.isEmpty {
                 Text("Paste a paragraph or two here...")
                     .font(.system(.body, design: .rounded))
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(Theme.textSecondary.opacity(0.6))
                     .padding(.horizontal, 20)
                     .padding(.vertical, 22)
                     .allowsHitTesting(false)
@@ -93,9 +76,8 @@ struct PasteTextView: View {
     }
 
     private func submit() {
-        guard text.count >= minChars else { return }
         editorFocused = false
-        onSubmit(text)
+        viewModel.submit(onSubmit: onSubmit)
     }
 }
 

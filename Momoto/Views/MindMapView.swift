@@ -8,9 +8,15 @@
 import SwiftUI
 
 struct MindMapView: View {
-
-    @StateObject private var viewModel = MindmapViewModel()
-
+    @EnvironmentObject private var appState: AppState
+    @StateObject private var viewModel: MindmapViewModel
+    let mindMap: MindMap
+    
+    init(mindMap: MindMap) {
+        self.mindMap = mindMap
+        _viewModel = StateObject(wrappedValue: MindmapViewModel(mindMap: mindMap))
+    }
+    
     // Layout di-cache agar tidak recompute setiap frame saat pinch
     @State private var cachedLayout: LayoutResult = LayoutResult(positions: [:], totalHeight: 0)
 
@@ -28,12 +34,10 @@ struct MindMapView: View {
     private let columnSpacing: CGFloat = 60
     private let rowSpacing: CGFloat = 20
 
-    // Nilai zoom aktif saat gestur berlangsung
     private var liveScale: CGFloat {
         min(max(scale * pinchDelta, 0.4), 2.5)
     }
 
-    // Nilai offset aktif saat gestur berlangsung
     private var liveOffset: CGSize {
         CGSize(width: offset.width + dragDelta.width,
                height: offset.height + dragDelta.height)
@@ -43,10 +47,8 @@ struct MindMapView: View {
         let contentSize = canvasSize(positions: cachedLayout.positions)
 
         ZStack {
-            // Canvas putih full layar
-            Color.white
+            Theme.white
 
-            // Konten mindmap
             ZStack(alignment: .topLeading) {
                 lineLayer(positions: cachedLayout.positions, size: contentSize)
                 nodeLayer(positions: cachedLayout.positions)
@@ -54,7 +56,6 @@ struct MindMapView: View {
             .scaleEffect(liveScale, anchor: .topLeading)
             .offset(liveOffset)
 
-            // Popup yang muncul saat long-press
             if let node = poppedNode {
                 NodePopup(node: node) {
                     withAnimation(.easeInOut(duration: 0.2)) { poppedNode = nil }
@@ -62,37 +63,35 @@ struct MindMapView: View {
                 .transition(.opacity.combined(with: .scale(scale: 0.95)))
             }
         }
-        // Frame harus explicitly full screen agar gesture area tidak mengecil saat zoom out
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .ignoresSafeArea()
-        // contentShape memastikan seluruh area layar bisa menerima gesture
         .contentShape(Rectangle())
-        // Gestur geser canvas (1 jari)
         .simultaneousGesture(
             DragGesture(minimumDistance: 15)
-                .updating($dragDelta) { value, state, _ in
-                    state = value.translation
-                }
-                .onEnded { value in
-                    offset.width  += value.translation.width
-                    offset.height += value.translation.height
-                }
+                .updating($dragDelta) { value, state, _ in state = value.translation }
+                .onEnded { offset.width += $0.translation.width; offset.height += $0.translation.height }
         )
-        // Gestur zoom (2 jari / pinch)
         .simultaneousGesture(
             MagnificationGesture()
-                .updating($pinchDelta) { value, state, _ in
-                    state = value
-                }
-                .onEnded { value in
-                    scale = min(max(scale * value, 0.4), 2.5)
-                }
+                .updating($pinchDelta) { value, state, _ in state = value }
+                .onEnded { scale = min(max(scale * $0, 0.4), 2.5) }
         )
         .animation(.easeInOut(duration: 0.2), value: poppedNode?.id)
+        .navigationBarBackButtonHidden(true)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button {
+                    appState.path = NavigationPath()
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "chevron.left")
+                    }
+                }
+            }
+        }
         .onAppear {
             cachedLayout = buildLayout(node: viewModel.mindMap.root, depth: 0, startY: 0)
         }
-        // Recompute layout hanya saat data mindmap berubah (bukan saat zoom/pan)
         .onChange(of: viewModel.mindMap) { _, _ in
             cachedLayout = buildLayout(node: viewModel.mindMap.root, depth: 0, startY: 0)
         }
@@ -120,7 +119,7 @@ struct MindMapView: View {
                     control2: CGPoint(x: midX, y: endY)
                 )
                 context.stroke(path,
-                               with: .color(Color.gray.opacity(0.4)),
+                               with: .color(Theme.stroke),
                                style: StrokeStyle(lineWidth: 1.5, lineCap: .round))
             }
         }
@@ -174,37 +173,27 @@ struct MindMapView: View {
 
         if node.isExpanded && !node.children.isEmpty {
             var childY = startY
-            var childPositions: [UUID: NodePosition] = [:]
 
             for child in node.children {
                 let result = buildLayout(node: child, depth: depth + 1, startY: childY, parentID: node.id)
-                childPositions.merge(result.positions) { _, new in new }
+                positions.merge(result.positions) { _, new in new }
                 childY += result.totalHeight + rowSpacing
             }
 
             let subtreeHeight = childY - startY - rowSpacing
             let centreY = startY + subtreeHeight / 2 - MindmapNodeView.height / 2
 
-            positions[node.id] = NodePosition(id: node.id, node: node, depth: depth,
-                                              origin: CGPoint(x: x, y: centreY),
-                                              parentID: parentID)
-            positions.merge(childPositions) { _, new in new }
+            positions[node.id] = NodePosition(id: node.id, node: node, depth: depth, origin: CGPoint(x: x, y: centreY), parentID: parentID)
             return LayoutResult(positions: positions, totalHeight: subtreeHeight)
         } else {
-            positions[node.id] = NodePosition(id: node.id, node: node, depth: depth,
-                                              origin: CGPoint(x: x, y: startY),
-                                              parentID: parentID)
+            positions[node.id] = NodePosition(id: node.id, node: node, depth: depth, origin: CGPoint(x: x, y: startY), parentID: parentID)
             return LayoutResult(positions: positions, totalHeight: MindmapNodeView.height)
         }
     }
 
     private func canvasSize(positions: [UUID: NodePosition]) -> CGSize {
-        var maxX: CGFloat = 0
-        var maxY: CGFloat = 0
-        for pos in positions.values {
-            maxX = max(maxX, pos.origin.x + MindmapNodeView.width)
-            maxY = max(maxY, pos.origin.y + MindmapNodeView.height)
-        }
+        let maxX = positions.values.map { $0.origin.x + MindmapNodeView.width }.max() ?? 0
+        let maxY = positions.values.map { $0.origin.y + MindmapNodeView.height }.max() ?? 0
         return CGSize(width: maxX, height: maxY)
     }
 }
@@ -216,49 +205,45 @@ private struct NodePopup: View {
     let onDismiss: () -> Void
 
     var body: some View {
-        // Background tipis buat detect tap di luar card
-        Color.black.opacity(0.15)
+        Theme.black.opacity(0.15)
             .ignoresSafeArea()
             .onTapGesture { onDismiss() }
             .overlay {
-                // Card kecil di tengah layar
                 VStack(alignment: .leading, spacing: 10) {
                     HStack {
                         Text(node.title)
-                            .font(.headline)
+                            .font(.system(.headline, design: .rounded).weight(.bold))
+                            .foregroundStyle(Theme.textPrimary)
                         Spacer()
                         Button(action: onDismiss) {
                             Image(systemName: "xmark.circle.fill")
-                                .foregroundStyle(.secondary)
-                                .font(.title3)
+                                .foregroundStyle(Theme.textSecondary)
+                                .font(.system(.title3, design: .rounded))
                         }
                     }
 
                     Divider()
 
-                    if let summary = node.summary, !summary.isEmpty {
-                        Text(summary)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                            .lineSpacing(3)
-                            .fixedSize(horizontal: false, vertical: true)
-                    } else {
-                        Text("Tidak ada ringkasan.")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    }
+                    Text((node.summary?.isEmpty == false) ? node.summary! : "Tidak ada ringkasan.")
+                        .font(.system(.subheadline, design: .rounded))
+                        .foregroundStyle(Theme.textSecondary)
+                        .lineSpacing(3)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 .padding(16)
                 .frame(maxWidth: 300)
                 .background(
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .fill(Color(.systemBackground))
-                        .shadow(color: .black.opacity(0.15), radius: 12, x: 0, y: 4)
+                        .fill(Theme.white)
+                        .shadow(color: Theme.black.opacity(0.15), radius: 12, x: 0, y: 4)
                 )
             }
     }
 }
 
 #Preview {
-    MindMapView()
+    let node = MindMapNode(title: "Preview", symbol: "star", summary: "Preview node", children: [], isExpanded: true)
+    let map = MindMap(id: UUID(), title: "Preview", root: node, rawText: "", createdAt: .now, source: "Preview")
+    
+    MindMapView(mindMap: map)
 }

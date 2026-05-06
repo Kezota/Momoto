@@ -21,44 +21,40 @@ struct HistoryCard: View {
                 // Left: Mindmap icon
                 ZStack {
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(Color(red: 0.93, green: 0.90, blue: 1.00)) //purple
+                        .fill(Theme.accentSoft)
                         .frame(width: 52, height: 52)
-                    Image(systemName: "brain") // icon per mindmap sementara
-                        .font(.system(size: 22, weight: .semibold))
-                        .foregroundStyle(Color(red: 0.45, green: 0.34, blue: 0.92)) //light purple
+                    Image(systemName: entry.root.symbol)
+                        .font(.system(.title2, design: .rounded).weight(.semibold))
+                        .foregroundStyle(Theme.purple)
                 }
                 
                 // Middle: Texts
                 VStack(alignment: .leading, spacing: 5) {
-                    //Title
                     Text(entry.title)
                         .font(.system(.headline, design: .rounded))
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(Theme.textPrimary)
                         .lineLimit(2)
                     
                     HStack(spacing: 6) {
-                        // Source blom ada di models
-                        // Date
                         Text(entry.createdAt, style: .date)
                             .font(.system(.caption, design: .rounded))
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Theme.textSecondary)
                     }
                 }
                 
                 // Right: Arrow
                 Spacer(minLength: 0)
                 Image(systemName: isDeleteMode ? (isSelected ? "checkmark.circle.fill" : "circle") : "chevron.right")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(isSelected ? .red : .secondary)
+                    .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                    .foregroundStyle(isSelected ? Theme.red : Theme.textSecondary)
             }
-            // Background
             .padding(14)
             .background(
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(isDeleteMode ? Color.white.opacity(0.85) : Color.white)
+                    .fill(isDeleteMode ? Theme.white.opacity(0.85) : Theme.white)
                     .overlay(
                         RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .stroke(Color.black.opacity(0.05), lineWidth: 1)
+                            .stroke(Theme.stroke, lineWidth: 1)
                     )
             )
         }

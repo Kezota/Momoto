@@ -21,16 +21,16 @@ struct HomeCard: View {
                     .frame(width: 54, height: 54)
                     .overlay(
                         Image(systemName: iconName)
-                            .font(.system(size: 24, weight: .medium))
+                            .font(.system(.title2, design: .rounded).weight(.medium))
                             .foregroundColor(color)
                     )
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(title)
-                        .font(.system(size: 17, weight: .bold))
+                        .font(.system(.headline, design: .rounded).weight(.bold))
                         .foregroundColor(.white)
                     Text(subtitle)
-                        .font(.system(size: 13))
+                        .font(.system(.footnote, design: .rounded))
                         .foregroundColor(.white.opacity(0.88))
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
