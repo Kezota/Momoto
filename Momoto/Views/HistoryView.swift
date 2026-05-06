@@ -9,37 +9,26 @@ import SwiftUI
 
 // Inputs
 struct HistoryView: View {
-    @State private var history: [MindMap] = []
+    @StateObject private var viewModel = HistoryViewModel()
     let onTap: (MindMap) -> Void
-    let onDelete: (UUID) -> Void
-    
-    @State private var isDeleteMode: Bool = false
-    @State private var selectedDeleteID: Set<UUID> = []
-    @State private var searchText: String = ""
-    
-    // Filter history
-    private var filteredHistory: [MindMap] {
-        if searchText.isEmpty { return history }
-        return history.filter { $0.title.localizedCaseInsensitiveContains(searchText) }
-    }
 
     // MARK: Main page
     var body: some View {
         ZStack {
             Theme.background.ignoresSafeArea()
             
-            if history.isEmpty {
+            if viewModel.history.isEmpty {
                 emptyState
             } else {
                 historyList
             }
         }
         .onAppear {
-            history = HistoryService.shared.load()
+            viewModel.load()
         }
         .navigationTitle("Recent Mindmaps")
         .navigationBarTitleDisplayMode(.large)
-        .searchable(text: $searchText, prompt: "Search mindmap")
+        .searchable(text: $viewModel.searchText, prompt: "Search mindmap")
         
         // Top right: Delete button
         .toolbar { deleteButton }
@@ -53,24 +42,17 @@ struct HistoryView: View {
     private var historyList: some View {
         ScrollView {
             LazyVStack(spacing: 10) {
-                ForEach(filteredHistory) { entry in
+                ForEach(viewModel.filteredHistory) { entry in
                     HistoryCard(
                         entry: entry,
-                        onTap: {
-                            if isDeleteMode {
-                                if !selectedDeleteID.insert(entry.id).inserted { selectedDeleteID.remove(entry.id) }
-                            } else { onTap(entry) }
-                        },
-                        onDelete: {
-                            onDelete(entry.id)
-                            history = HistoryService.shared.load()
-                        },
-                        isDeleteMode: isDeleteMode,
-                        isSelected: selectedDeleteID.contains(entry.id)
+                        onTap: { viewModel.handleTap(on: entry, tapAction: onTap) },
+                        onDelete: { viewModel.handleDelete(for: entry) },
+                        isDeleteMode: viewModel.isDeleteMode,
+                        isSelected: viewModel.selectedDeleteID.contains(entry.id)
                     )
                 }
 
-                if filteredHistory.isEmpty && !searchText.isEmpty {
+                if viewModel.filteredHistory.isEmpty && !viewModel.searchText.isEmpty {
                     noResultsState
                 }
             }
@@ -102,7 +84,7 @@ struct HistoryView: View {
                 .font(.system(.largeTitle, design: .rounded).weight(.light))
                 .foregroundStyle(Theme.purple.opacity(0.5))
             
-            Text("No results for \"\(searchText)\"")
+            Text("No results for \"\(viewModel.searchText)\"")
                 .font(.system(.subheadline, design: .rounded).weight(.medium))
                 .foregroundStyle(Theme.textSecondary)
         }
@@ -113,40 +95,26 @@ struct HistoryView: View {
     // 5. Toolbar delete button
     @ToolbarContentBuilder
     private var deleteButton: some ToolbarContent {
-        if !history.isEmpty {
+        if !viewModel.history.isEmpty {
             ToolbarItem(placement: .topBarTrailing) {
-                Button(action: toggleDeleteMode) {
-                    Image(systemName: isDeleteMode ? "xmark" : "trash")
+                Button(action: { viewModel.toggleDeleteMode() }) {
+                    Image(systemName: viewModel.isDeleteMode ? "xmark" : "trash")
                         .foregroundStyle(Theme.purple)
                 }
-                .accessibilityLabel(isDeleteMode ? "Cancel delete" : "Delete mindmap")
+                .accessibilityLabel(viewModel.isDeleteMode ? "Cancel delete" : "Delete mindmap")
             }
         }
     }
     
     // 6. Bottom delete button
+    @ViewBuilder
     private var confirmDeleteButton: some View {
-        Group {
-            if isDeleteMode, !selectedDeleteID.isEmpty {
-                Button("Delete Now", role: .destructive, action: deleteSelected)
-                    .buttonStyle(PrimaryButtonStyle(color: Theme.red, isFullWidth: true))
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 8)
-            }
+        if viewModel.isDeleteMode, !viewModel.selectedDeleteID.isEmpty {
+            Button("Delete Now", role: .destructive, action: { viewModel.deleteSelected() })
+                .buttonStyle(PrimaryButtonStyle(color: Theme.red, isFullWidth: true))
+                .padding(.horizontal, 20)
+                .padding(.bottom, 8)
         }
-    }
-
-    // MARK: Helper Functions
-    private func toggleDeleteMode() {
-        isDeleteMode.toggle()
-        if !isDeleteMode { selectedDeleteID.removeAll() }
-    }
-
-    private func deleteSelected() {
-        selectedDeleteID.forEach(onDelete)
-        selectedDeleteID.removeAll()
-        isDeleteMode = false
-        history = HistoryService.shared.load()
     }
 }
 
@@ -174,8 +142,7 @@ struct HistoryView: View {
     
     NavigationStack {
         HistoryView(
-            onTap: { _ in },
-            onDelete: { _ in }
+            onTap: { _ in }
         )
     }
 }

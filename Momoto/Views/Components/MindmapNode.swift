@@ -7,14 +7,11 @@
 
 import SwiftUI
 
-// MindmapNode is the visual "bubble" that represents one node in the mindmap.
-// It shows the title, a chevron if there are children, and highlights when selected.
 struct MindmapNodeView: View {
     let node: MindMapNode
     let depth: Int
     let isSelected: Bool
 
-    // Fixed size so the layout engine can calculate positions consistently
     static let width: CGFloat = 160
     static let height: CGFloat = 58
 

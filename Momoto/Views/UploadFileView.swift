@@ -10,9 +10,8 @@ import UniformTypeIdentifiers
 import UIKit
 
 struct UploadFileView: View {
+    @StateObject private var viewModel = UploadFileViewModel()
     @State private var showImporter = false
-    @State private var errorMessage: String?
-    @State private var isWorking = false
     
     var onTextExtracted: (String) -> Void
 
@@ -28,9 +27,9 @@ struct UploadFileView: View {
                 Text("We'll extract the text and turn it into a mindmap.")
                     .font(.system(.subheadline, design: .rounded))
                     .foregroundStyle(Theme.textSecondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .frame(maxWidth: .infinity, alignment: .center)
 
-                if let errorMessage {
+                if let errorMessage = viewModel.errorMessage {
                     Text(errorMessage)
                         .font(.callout)
                         .foregroundStyle(Theme.red)
@@ -45,12 +44,12 @@ struct UploadFileView: View {
                     showImporter = true
                 } label: {
                     HStack(spacing: 10) {
-                        if isWorking { ProgressView().tint(Theme.white) }
-                        Text(isWorking ? "Reading..." : "Choose PDF")
+                        if viewModel.isWorking { ProgressView().tint(Theme.white) }
+                        Text(viewModel.isWorking ? "Reading..." : "Choose PDF")
                     }
                 }
                 .buttonStyle(PrimaryButtonStyle(color: Theme.yellow, isFullWidth: true))
-                .disabled(isWorking)
+                .disabled(viewModel.isWorking)
             }
             .padding(.horizontal, 20)
             .padding(.bottom, 24)
@@ -59,8 +58,8 @@ struct UploadFileView: View {
         .navigationBarTitleDisplayMode(.large)
         .fileImporter(isPresented: $showImporter, allowedContentTypes: [.pdf]) { result in
             switch result {
-            case .success(let url): handleURL(url)
-            case .failure(let error): errorMessage = error.localizedDescription
+            case .success(let url): viewModel.handleURL(url, onTextExtracted: onTextExtracted)
+            case .failure(let error): viewModel.errorMessage = error.localizedDescription
             }
         }
     }
@@ -81,26 +80,6 @@ struct UploadFileView: View {
                     .foregroundStyle(Theme.yellow)
             }
         }
-    }
-
-    private func handleURL(_ url: URL) {
-        errorMessage = nil
-        isWorking = true
-
-        let accessed = url.startAccessingSecurityScopedResource()
-        defer {
-            if accessed { url.stopAccessingSecurityScopedResource() }
-        }
-
-        let text = PDFTextService.extract(from: url)
-        isWorking = false
-
-        guard !text.isEmpty else {
-            errorMessage = "No readable text found in this PDF."
-            return
-        }
-
-        onTextExtracted(text)
     }
 }
 
