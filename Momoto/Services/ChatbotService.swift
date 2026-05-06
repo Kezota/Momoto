@@ -16,7 +16,7 @@ struct ModelContext {
     var selectedNodeTitle: String?
 }
 
-actor FoundationModelService {
+actor ChatbotService {
     
     func keywordExplanation(_ keyword: String, context: ModelContext) async -> String {
         let prompt = """

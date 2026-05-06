@@ -4,16 +4,13 @@
 //
 //  Created by Kezia Meilany Tandapai on 01/05/26.
 //
+
 import Foundation
 import UIKit
 import Vision
 
-enum OCRError: Error {
-    case noImage
-    case recognitionFailed(Error)
-}
-
 struct OCRService {
+    
     func recognizeText(in images: [UIImage]) async throws -> String { //Recognize text from MANY images
         guard !images.isEmpty else {
             throw OCRError.noImage
@@ -26,6 +23,7 @@ struct OCRService {
         }
         return pages.joined(separator: "/n/n")
     }
+    
     func recognizeText(in image: UIImage) async throws -> String { //Recognize text from one image
         guard let cgImage = image.cgImage else {return ""}
         return try await withCheckedThrowingContinuation { continuation in

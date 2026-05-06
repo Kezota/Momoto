@@ -14,9 +14,9 @@ final class ChatbotViewModel: ObservableObject {
     @Published var draft: String = ""
     @Published var isThinking: Bool = false
 
-    private let model: FoundationModelService
+    private let model: ChatbotService
 
-    nonisolated init(model: FoundationModelService = FoundationModelService()) {
+    nonisolated init(model: ChatbotService = ChatbotService()) {
         self.model = model
     }
 
