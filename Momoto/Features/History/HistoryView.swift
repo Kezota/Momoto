@@ -62,9 +62,8 @@ struct HistoryView: View {
             .padding(.bottom, 24)
         }
     }
-    
 
-    // 5. Toolbar delete button
+    // Toolbar delete button
     @ToolbarContentBuilder
     private var deleteButton: some ToolbarContent {
         if !viewModel.history.isEmpty {
@@ -83,7 +82,7 @@ struct HistoryView: View {
         }
     }
     
-    // 6. Bottom delete button
+    // Bottom delete button
     @ViewBuilder
     private var confirmDeleteButton: some View {
         if viewModel.isDeleteMode, !viewModel.selectedDeleteID.isEmpty {
