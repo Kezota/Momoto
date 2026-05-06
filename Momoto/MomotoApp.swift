@@ -15,6 +15,7 @@ struct MomotoApp: App {
         WindowGroup {
             ContentView()
                 .environmentObject(appState)
+                .preferredColorScheme(.light)
         }
     }
 }
