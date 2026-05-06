@@ -7,16 +7,17 @@ import SwiftUI
 import PhotosUI
 
 struct UploadPhotoView: View {
+    
     @StateObject private var viewModel = UploadPhotoViewModel()
     @State private var hasAutoPrompted = false
     @State private var showPicker = false
     
     var onTextExtracted: (String) -> Void
-
+    
     var body: some View {
         ZStack {
             Theme.background.ignoresSafeArea()
-
+            
             VStack(spacing: 24) {
                 if viewModel.extractedText.isEmpty {
                     initialState
@@ -37,18 +38,18 @@ struct UploadPhotoView: View {
         }
         .photosPicker(isPresented: $showPicker, selection: $viewModel.selectedItem, matching: .images, photoLibrary: .shared())
     }
-
+    
     private var initialState: some View {
         VStack(spacing: 24) {
             Spacer()
-
+            
             photoArt
-
+            
             Text("We'll extract the text and turn it into a mindmap.")
                 .font(.system(.subheadline, design: .rounded))
                 .foregroundStyle(Theme.textSecondary)
                 .frame(maxWidth: .infinity, alignment: .center)
-
+            
             if let errorMessage = viewModel.errorMessage {
                 Text(errorMessage)
                     .font(.callout)
@@ -57,9 +58,9 @@ struct UploadPhotoView: View {
                     .padding(.horizontal)
                     .transition(.opacity)
             }
-
+            
             Spacer()
-
+            
             Button {
                 showPicker = true
             } label: {
@@ -72,7 +73,7 @@ struct UploadPhotoView: View {
             .disabled(viewModel.isWorking)
         }
     }
-
+    
     private var previewState: some View {
         VStack(alignment: .leading, spacing: 20) {
             Text("Preview of extracted text:")
@@ -85,10 +86,10 @@ struct UploadPhotoView: View {
                 .foregroundStyle(Theme.textPrimary)
                 .scrollContentBackground(.hidden)
                 .padding(16)
-            .frame(maxHeight: .infinity)
-            .background(Theme.white)
-            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(Theme.stroke, lineWidth: 1))
+                .frame(maxHeight: .infinity)
+                .background(Theme.white)
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(Theme.stroke, lineWidth: 1))
             
             HStack(spacing: 12) {
                 Button("Re-upload") {
@@ -106,14 +107,14 @@ struct UploadPhotoView: View {
             }
         }
     }
-
+    
     private var photoArt: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 22, style: .continuous)
                 .fill(Theme.cardHistory.opacity(0.15))
                 .frame(width: 180, height: 220)
                 .shadow(color: Theme.cardHistory.opacity(0.25), radius: 16, x: 0, y: 10)
-
+            
             VStack(spacing: 8) {
                 Image(systemName: "photo.fill")
                     .font(.system(size: 90, weight: .regular))

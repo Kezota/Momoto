@@ -8,7 +8,8 @@ import Combine
 
 @MainActor
 final class CameraViewModel: ObservableObject {
-    let ocr = OCRViewModel()
+    
+    var ocr = OCRViewModel()
     
     @Published var showCapturedTextSheet: Bool = false
     @Published var isScannerPresented: Bool = true

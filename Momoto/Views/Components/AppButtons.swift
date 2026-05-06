@@ -10,7 +10,7 @@ struct PrimaryButtonStyle: ButtonStyle {
     var isFullWidth: Bool = true
     
     @Environment(\.isEnabled) private var isEnabled
-
+    
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.system(.headline, design: .rounded).weight(.bold))
@@ -29,7 +29,7 @@ struct SecondaryButtonStyle: ButtonStyle {
     var color: Color = Theme.purple
     
     @Environment(\.isEnabled) private var isEnabled
-
+    
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.system(.headline, design: .rounded).weight(.bold))

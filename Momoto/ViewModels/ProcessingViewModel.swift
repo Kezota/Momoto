@@ -11,31 +11,25 @@ import Combine
 
 @MainActor
 final class ProcessingViewModel: ObservableObject {
-
-    enum State {
-        case loading
-        case success(MindMap)
-        case failure(String)
-    }
-
-    @Published var state: State = .loading
+    
+    @Published var state: ProcessingState = .loading
     @Published var textIndex: Int = 0
-
+    
     private let service = TextToNodeService()
     private let maxCharacters = 6000
     private var timerTask: Task<Void, Never>?
-
+    
     let loadingTexts = [
         "Reading your content",
         "Identifying key concept",
         "Structuring mindmap"
     ]
-
+    
     var currentLoadingText: String {
         guard textIndex < loadingTexts.count else { return "" }
         return loadingTexts[textIndex]
     }
-
+    
     private func startLoadingAnimation() {
         textIndex = 0
         timerTask?.cancel()
@@ -47,7 +41,7 @@ final class ProcessingViewModel: ObservableObject {
             }
         }
     }
-
+    
     private func stopLoadingAnimation() {
         timerTask?.cancel()
         timerTask = nil

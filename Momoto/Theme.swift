@@ -9,7 +9,6 @@ import SwiftUI
 
 enum Theme {
 
-    // ──────────────────────────────────────────
     // MARK: Brand colours
     // ──────────────────────────────────────────
 
@@ -18,7 +17,6 @@ enum Theme {
     static let green   = Color(hex: "46B76B")
     static let yellow  = Color(hex: "F3A528")
 
-    // ──────────────────────────────────────────
     // MARK: Neutral / text
     // ──────────────────────────────────────────
 
@@ -26,14 +24,12 @@ enum Theme {
     static let white   = Color(hex: "FAFAFA")
     static let textSecondary = Color(hex: "9B9B9B")
 
-    // ──────────────────────────────────────────
     // MARK: Surfaces
     // ──────────────────────────────────────────
 
     static let background = Color(hex: "F5F5FE")
     static let stroke = Color(hex: "EBEBEB")
 
-    // ──────────────────────────────────────────
     // MARK: Semantic / role-based aliases
     // ──────────────────────────────────────────
 
@@ -42,7 +38,6 @@ enum Theme {
     static let accentSoft = purple.opacity(0.12)
     static let greenSoft = green.opacity(0.12)
 
-    // ──────────────────────────────────────────
     // MARK: Per-card colours (HomeView grid)
     // ──────────────────────────────────────────
 
@@ -51,7 +46,6 @@ enum Theme {
     static let cardScan   = red
     static let cardHistory = green
 
-    // ──────────────────────────────────────────
     // MARK: Dark surface (used in CameraView)
     // ──────────────────────────────────────────
 

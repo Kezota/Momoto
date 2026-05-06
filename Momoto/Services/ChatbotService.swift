@@ -54,7 +54,7 @@ actor ChatbotService {
     }
     
     private func generate(prompt: String, fallback: String) async -> String {
-    #if canImport(FoundationModels)
+#if canImport(FoundationModels)
         if #available(iOS 26.0, *) {
             do {
                 let session = LanguageModelSession()
@@ -65,7 +65,7 @@ actor ChatbotService {
                 return fallback
             }
         }
-    #endif
+#endif
         return fallback
     }
 }

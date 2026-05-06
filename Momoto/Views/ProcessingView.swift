@@ -9,6 +9,7 @@ import SwiftUI
 import Combine
 
 struct ProcessingView: View {
+    
     @EnvironmentObject private var appState: AppState
     @StateObject private var viewModel = ProcessingViewModel()
     
@@ -72,7 +73,7 @@ struct ProcessingView: View {
             
             // Step Indicator
             HStack(spacing: 8) {
-                ForEach(0..<2) { index in
+                ForEach(0..<3) { index in
                     Capsule()
                         .frame(width: index <= viewModel.textIndex ? 35 : 12, height: 8)
                         .foregroundColor(index <= viewModel.textIndex ? Theme.purple : Theme.stroke)
@@ -83,7 +84,7 @@ struct ProcessingView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
-
+    
     private func errorBody(message: String) -> some View {
         VStack(spacing: 20) {
             Image(systemName: "exclamationmark.triangle.fill")
@@ -98,7 +99,7 @@ struct ProcessingView: View {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
             Button("Try Again") { Task { await viewModel.generate(from: appState.pendingInputText, source: "App") } }
-            .buttonStyle(PrimaryButtonStyle(color: Theme.purple, isFullWidth: false))
+                .buttonStyle(PrimaryButtonStyle(color: Theme.purple, isFullWidth: false))
         }
         .padding()
     }
