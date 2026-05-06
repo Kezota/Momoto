@@ -9,10 +9,10 @@ import SwiftUI
 
 struct ChatbotView: View {
     let context: ModelContext
-
+    
     @StateObject private var viewModel = ChatbotViewModel()
     @FocusState private var inputFocused: Bool
-
+    
     var body: some View {
         VStack(spacing: 0) {
             messageList
@@ -23,7 +23,7 @@ struct ChatbotView: View {
         .navigationTitle("Ask about the Mindmap")
         .navigationBarTitleDisplayMode(.inline)
     }
-
+    
     private var messageList: some View {
         ScrollViewReader { proxy in
             ScrollView {
@@ -51,7 +51,7 @@ struct ChatbotView: View {
             }
         }
     } //proxy to scroll automaticly
-
+    
     private var emptyState: some View {
         VStack(spacing: 8) {
             Image(systemName: "bubble.left.and.bubble.right")
@@ -61,7 +61,7 @@ struct ChatbotView: View {
         .padding(.top, 60)
         .padding(.horizontal, 24)
     }
-
+    
     private func bubble(for message: ChatMessage) -> some View {
         HStack {
             if message.role == .user { Spacer(minLength: 40) }
@@ -79,7 +79,7 @@ struct ChatbotView: View {
             if message.role == .assistant { Spacer(minLength: 40) }
         }
     }
-
+    
     private var thinkingBubble: some View {
         HStack(spacing: 8) {
             ProgressView()
@@ -92,7 +92,7 @@ struct ChatbotView: View {
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
     }
-
+    
     private var inputBar: some View {
         HStack(spacing: 10) {
             TextField("Ask anything…", text: $viewModel.draft, axis: .vertical)
@@ -103,7 +103,7 @@ struct ChatbotView: View {
                 .padding(.vertical, 10)
                 .background(Color(uiColor: UIColor.secondarySystemGroupedBackground))
                 .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-
+            
             Button {
                 inputFocused = false
                 Task { await viewModel.send(context: context) }
@@ -118,12 +118,12 @@ struct ChatbotView: View {
         .padding(.vertical, 10)
         .background(.ultraThinMaterial)
     }
-
+    
     private var canSend: Bool {
         !viewModel.draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         && !viewModel.isThinking
     }
-
+    
     private func scrollToBottom(using proxy: ScrollViewProxy) {
         withAnimation(.easeOut(duration: 0.2)) {
             if viewModel.isThinking {

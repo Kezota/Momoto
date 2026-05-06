@@ -8,6 +8,7 @@ import Combine
 
 @MainActor
 final class UploadFileViewModel: ObservableObject {
+    
     @Published var isWorking: Bool = false
     @Published var errorMessage: String?
     @Published var extractedText: String = ""

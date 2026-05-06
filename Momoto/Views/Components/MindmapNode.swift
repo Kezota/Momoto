@@ -11,10 +11,10 @@ struct MindmapNodeView: View {
     let node: MindMapNode
     let depth: Int
     let isSelected: Bool
-
+    
     static let width: CGFloat = 160
     static let height: CGFloat = 58
-
+    
     var body: some View {
         HStack(spacing: 8) {
             if !node.symbol.isEmpty {
@@ -30,9 +30,9 @@ struct MindmapNodeView: View {
                 .minimumScaleFactor(0.85)
                 .multilineTextAlignment(.leading)
                 .foregroundStyle(Theme.textPrimary)
-
+            
             Spacer(minLength: 0)
-
+            
             // Show chevron only when the node has children
             if !node.children.isEmpty {
                 Image(systemName: node.isExpanded ? "chevron.left" : "chevron.right")
@@ -55,15 +55,5 @@ struct MindmapNodeView: View {
                 )
         )
         .shadow(color: Theme.black.opacity(0.06), radius: 4, x: 0, y: 2)
-    }
-
-    // Each depth level gets a soft tint of the brand palette
-    private func colorForDepth(_ depth: Int) -> Color {
-        switch depth {
-        case 0:  return Theme.purple.opacity(0.10)  // root  – soft purple
-        case 1:  return Theme.green.opacity(0.10)   // L1    – soft green
-        case 2:  return Theme.yellow.opacity(0.10)  // L2    – soft yellow
-        default: return Theme.red.opacity(0.08)     // deep  – soft red
-        }
     }
 }

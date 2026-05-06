@@ -13,7 +13,7 @@ struct MomotoApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            HomeView()
                 .environmentObject(appState)
                 .preferredColorScheme(.light)
         }

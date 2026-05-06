@@ -24,3 +24,24 @@ struct MindMapNode: Identifiable, Codable, Hashable {
         self.isExpanded = isExpanded
     }
 }
+
+// Placeholder for AI, exclude UUID & isExpanded from MindMapNode
+struct NodeDTO: Codable {
+    let title: String
+    let summary: String?
+    let symbol: String?
+    let children: [NodeDTO]?
+}
+
+struct NodePosition {
+    let id: UUID
+    let node: MindMapNode
+    let depth: Int
+    let origin: CGPoint
+    let parentID: UUID?
+}
+
+struct LayoutResult {
+    var positions: [UUID: NodePosition]
+    var totalHeight: CGFloat
+}

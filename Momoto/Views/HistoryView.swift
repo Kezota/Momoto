@@ -9,16 +9,17 @@ import SwiftUI
 
 // Inputs
 struct HistoryView: View {
+    
     @StateObject private var viewModel = HistoryViewModel()
     let onTap: (MindMap) -> Void
-
+    
     // MARK: Main page
     var body: some View {
         ZStack {
             Theme.background.ignoresSafeArea()
             
             if viewModel.history.isEmpty {
-                emptyState
+                HistoryEmptyState()
             } else {
                 historyList
             }
@@ -36,7 +37,7 @@ struct HistoryView: View {
         // Bottom: Confirm delete button
         .safeAreaInset(edge: .bottom) { confirmDeleteButton }
     }
-
+    
     // MARK: UI
     // 1. Mindmap history
     private var historyList: some View {
@@ -51,9 +52,9 @@ struct HistoryView: View {
                         isSelected: viewModel.selectedDeleteID.contains(entry.id)
                     )
                 }
-
+                
                 if viewModel.filteredHistory.isEmpty && !viewModel.searchText.isEmpty {
-                    noResultsState
+                    HistoryNoResultsState(searchText: viewModel.searchText)
                 }
             }
             .padding(.horizontal, 20)
@@ -62,35 +63,6 @@ struct HistoryView: View {
         }
     }
     
-    // 2. No mindmap available
-    private var emptyState: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "brain")
-                .font(.system(.largeTitle, design: .rounded).weight(.light))
-                .foregroundStyle(Theme.purple)
-            
-            Text("No mindmap available")
-                .font(.system(.subheadline, design: .rounded).weight(.medium))
-                .foregroundStyle(Theme.textSecondary)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .padding(.top, 248)
-    }
-    
-    // 3. No search result
-    private var noResultsState: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "magnifyingglass")
-                .font(.system(.largeTitle, design: .rounded).weight(.light))
-                .foregroundStyle(Theme.purple.opacity(0.5))
-            
-            Text("No results for \"\(viewModel.searchText)\"")
-                .font(.system(.subheadline, design: .rounded).weight(.medium))
-                .foregroundStyle(Theme.textSecondary)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.top, 48)
-    }
 
     // 5. Toolbar delete button
     @ToolbarContentBuilder

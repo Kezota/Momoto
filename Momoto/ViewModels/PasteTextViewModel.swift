@@ -10,6 +10,7 @@ import Combine
 
 @MainActor
 final class PasteTextViewModel: ObservableObject {
+    
     @Published var text: String = ""
     private let minChars = 40
     

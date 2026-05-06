@@ -9,15 +9,16 @@ import SwiftUI
 import UIKit
 
 struct PasteTextView: View {
+    
     @StateObject private var viewModel = PasteTextViewModel()
     @FocusState private var editorFocused: Bool
     
     var onSubmit: (String) -> Void
-
+    
     var body: some View {
         ZStack {
             Theme.background.ignoresSafeArea()
-
+            
             VStack(spacing: 8) {
                 HStack {
                     Text("Paste your text")
@@ -26,17 +27,17 @@ struct PasteTextView: View {
                     Spacer()
                 }
                 .padding(.top, 12)
-
+                
                 Text("We'll summarise it into an interactive mindmap.")
                     .font(.system(.subheadline, design: .rounded))
                     .foregroundStyle(Theme.textSecondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.bottom, 16)
-
+                
                 editorCard
-
+                
                 Spacer(minLength: 0)
-
+                
                 Button("Generate Mindmap", action: submit)
                     .buttonStyle(PrimaryButtonStyle(color: Theme.purple, isFullWidth: true))
                     .disabled(viewModel.isSubmitDisabled)
@@ -53,7 +54,7 @@ struct PasteTextView: View {
             }
         }
     }
-
+    
     private var editorCard: some View {
         ZStack(alignment: .topLeading) {
             RoundedRectangle(cornerRadius: 22, style: .continuous)
@@ -63,14 +64,14 @@ struct PasteTextView: View {
                         .stroke(Theme.stroke, lineWidth: 1)
                 )
                 .shadow(color: Theme.black.opacity(0.04), radius: 12, x: 0, y: 6)
-
+            
             TextEditor(text: $viewModel.text)
                 .font(.system(.body, design: .rounded))
                 .foregroundStyle(Theme.textPrimary)
                 .padding(14)
                 .scrollContentBackground(.hidden)
                 .focused($editorFocused)
-
+            
             if viewModel.text.isEmpty {
                 Text("Paste a paragraph or two here...")
                     .font(.system(.body, design: .rounded))
@@ -82,7 +83,7 @@ struct PasteTextView: View {
         }
         .frame(minHeight: 320)
     }
-
+    
     private func submit() {
         editorFocused = false
         viewModel.submit(onSubmit: onSubmit)

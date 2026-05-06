@@ -1,22 +1,10 @@
 //
-//  ContentView.swift
+//  HomeView.swift
 //  MomotoMindmap
 //
 
 import SwiftUI
 import Combine
-
-// MARK: - Route
-enum AppRoute: Hashable {
-    case scan
-    case pdf
-    case paste
-    case processing
-    case mindmap(MindMap)
-    case chatbot
-    case history
-    case photo
-}
 
 // MARK: - AppState
 class AppState: ObservableObject {
@@ -24,17 +12,15 @@ class AppState: ObservableObject {
     @Published var pendingInputText = ""
 }
 
-typealias ContentView = HomeView
-
 // MARK: - HomeView
 struct HomeView: View {
     @EnvironmentObject private var appState: AppState
-
+    
     let columns = [
         GridItem(.flexible(), spacing: 16),
         GridItem(.flexible(), spacing: 16)
     ]
-
+    
     var body: some View {
         NavigationStack(path: $appState.path) {
             ZStack(alignment: .topTrailing) {
@@ -52,16 +38,16 @@ struct HomeView: View {
                         
                         // 2x2 Grid
                         LazyVGrid(columns: columns, spacing: 16) {
-                            GridCard(color: Theme.cardPaste, iconName: "character.cursor.ibeam", title: "Paste Text") {
+                            HomeCard(color: Theme.cardPaste, iconName: "character.cursor.ibeam", title: "Paste Text") {
                                 appState.path.append(AppRoute.paste)
                             }
-                            GridCard(color: Theme.cardPDF, iconName: "doc.fill", title: "Upload PDF") {
+                            HomeCard(color: Theme.cardPDF, iconName: "doc.fill", title: "Upload PDF") {
                                 appState.path.append(AppRoute.pdf)
                             }
-                            GridCard(color: Theme.cardScan, iconName: "camera.viewfinder", title: "Scan with Camera") {
+                            HomeCard(color: Theme.cardScan, iconName: "camera.viewfinder", title: "Scan with Camera") {
                                 appState.path.append(AppRoute.scan)
                             }
-                            GridCard(color: Theme.cardHistory, iconName: "photo.fill", title: "Use Photo") {
+                            HomeCard(color: Theme.cardHistory, iconName: "photo.fill", title: "Use Photo") {
                                 appState.path.append(AppRoute.photo)
                             }
                         }
@@ -113,45 +99,6 @@ struct HomeView: View {
     private func processInput(_ text: String) {
         appState.pendingInputText = text
         appState.path.append(AppRoute.processing)
-    }
-}
-
-// MARK: - GridCard
-struct GridCard: View {
-    let color: Color
-    let iconName: String
-    let title: String
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            VStack(spacing: 20) {
-                Spacer()
-                
-                // Icon box
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(Theme.white.opacity(0.25))
-                    .frame(width: 70, height: 70)
-                    .overlay(
-                        Image(systemName: iconName)
-                            .font(.system(.largeTitle, design: .rounded).weight(.medium))
-                            .foregroundColor(Theme.white)
-                    )
-
-                Text(title)
-                    .font(.system(.headline, design: .rounded).weight(.semibold))
-                    .foregroundColor(Theme.white)
-                    .multilineTextAlignment(.center)
-                    .lineLimit(2)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                Spacer()
-            }
-            .frame(maxWidth: .infinity)
-            .frame(height: 180)
-            .background(RoundedRectangle(cornerRadius: 24).fill(color))
-        }
-        .buttonStyle(.plain)
     }
 }
 
