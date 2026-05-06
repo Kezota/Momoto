@@ -21,11 +21,11 @@ struct HistoryCard: View {
                 // Left: Mindmap icon
                 ZStack {
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(Theme.accentSoft)
+                        .fill(Theme.greenSoft)
                         .frame(width: 52, height: 52)
                     Image(systemName: entry.root.symbol)
                         .font(.system(.title2, design: .rounded).weight(.semibold))
-                        .foregroundStyle(Theme.purple)
+                        .foregroundStyle(Theme.green)
                 }
                 
                 // Middle: Texts

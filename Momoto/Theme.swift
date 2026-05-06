@@ -40,6 +40,7 @@ enum Theme {
     static let textPrimary = black
     static let accent = purple
     static let accentSoft = purple.opacity(0.12)
+    static let greenSoft = green.opacity(0.12)
 
     // ──────────────────────────────────────────
     // MARK: Per-card colours (HomeView grid)

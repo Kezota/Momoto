@@ -95,6 +95,23 @@ struct MindMapView: View {
         .onChange(of: viewModel.mindMap) { _, _ in
             cachedLayout = buildLayout(node: viewModel.mindMap.root, depth: 0, startY: 0)
         }
+        .overlay(alignment: .bottom) {
+            if poppedNode == nil {
+                HStack(spacing: 8) {
+                    Image(systemName: "info.circle.fill")
+                        .foregroundStyle(Theme.purple)
+                    Text("Hold any node to view its summary")
+                        .font(.system(.footnote, design: .rounded).weight(.medium))
+                        .foregroundStyle(Theme.textPrimary)
+                }
+                .padding(.vertical, 10)
+                .padding(.horizontal, 16)
+                .background(.ultraThinMaterial, in: Capsule())
+                .shadow(color: Theme.black.opacity(0.05), radius: 10, y: 4)
+                .padding(.bottom, 30)
+                .transition(.opacity.combined(with: .move(edge: .bottom)))
+            }
+        }
     }
 
     // MARK: - Garis koneksi
