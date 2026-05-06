@@ -9,11 +9,10 @@ import SwiftUI
 import UIKit
 
 struct PasteTextView: View {
-    @State private var text: String = ""
+    @State private var text = ""
     @FocusState private var editorFocused: Bool
     
     var onSubmit: (String) -> Void
-
     private let minChars = 40
 
     var body: some View {
@@ -21,22 +20,18 @@ struct PasteTextView: View {
             Theme.background.ignoresSafeArea()
 
             VStack(spacing: 24) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("We'll summarise it into an interactive mindmap.")
-                        .font(.system(.subheadline, design: .rounded))
-                        .foregroundStyle(Theme.textSecondary)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
+                Text("We'll summarise it into an interactive mindmap.")
+                    .font(.system(.subheadline, design: .rounded))
+                    .foregroundStyle(Theme.textSecondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
 
                 editorCard
 
                 Spacer(minLength: 0)
 
-                Button("Generate Mindmap") {
-                    submit()
-                }
-                .buttonStyle(PrimaryButtonStyle(color: Theme.purple, isFullWidth: true))
-                .disabled(text.count < minChars)
+                Button("Generate Mindmap", action: submit)
+                    .buttonStyle(PrimaryButtonStyle(color: Theme.purple, isFullWidth: true))
+                    .disabled(text.count < minChars)
             }
             .padding(.horizontal, 20)
             .padding(.top, 12)
@@ -45,9 +40,7 @@ struct PasteTextView: View {
         .navigationTitle("Paste your text")
         .navigationBarTitleDisplayMode(.large)
         .toolbar {
-            ToolbarItem(placement: .keyboard) {
-                Spacer()
-            }
+            ToolbarItem(placement: .keyboard) { Spacer() }
             ToolbarItem(placement: .keyboard) {
                 Button("Done") { editorFocused = false }
             }
@@ -67,8 +60,7 @@ struct PasteTextView: View {
             TextEditor(text: $text)
                 .font(.system(.body, design: .rounded))
                 .foregroundStyle(Theme.textPrimary)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 14)
+                .padding(14)
                 .scrollContentBackground(.hidden)
                 .focused($editorFocused)
 

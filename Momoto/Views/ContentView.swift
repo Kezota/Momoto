@@ -38,45 +38,34 @@ struct HomeView: View {
         NavigationStack(path: $appState.path) {
             ZStack {
                 Theme.background.ignoresSafeArea()
-                VStack(spacing: 0) {
-                    ScrollView(showsIndicators: false) {
-                        VStack(spacing: 36) {
-                            // Logo
-                            Image("MOMOTOLOGO")
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: 350)
-                                .padding(.top, 70)
-                                .padding(.bottom, 40)
-                            // 2x2 Grid
-                            LazyVGrid(columns: columns, spacing: 16) {
-                                GridCard(
-                                    color: Theme.cardPaste,
-                                    iconName: "character.cursor.ibeam",
-                                    title: "Paste Text"
-                                ) { appState.path.append(AppRoute.paste) }
-
-                                GridCard(
-                                    color: Theme.cardPDF,
-                                    iconName: "doc.fill",
-                                    title: "Upload PDF"
-                                ) { appState.path.append(AppRoute.pdf) }
-
-                                GridCard(
-                                    color: Theme.cardScan,
-                                    iconName: "camera.viewfinder",
-                                    title: "Scan with Camera"
-                                ) { appState.path.append(AppRoute.scan) }
-
-                                GridCard(
-                                    color: Theme.cardHistory,
-                                    iconName: "arrow.triangle.branch",
-                                    title: "Past Mindmaps"
-                                ) { appState.path.append(AppRoute.history) }
+                
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 36) {
+                        // Logo
+                        Image("MOMOTOLOGO")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 350)
+                            .padding(.top, 70)
+                            .padding(.bottom, 40)
+                        
+                        // 2x2 Grid
+                        LazyVGrid(columns: columns, spacing: 16) {
+                            GridCard(color: Theme.cardPaste, iconName: "character.cursor.ibeam", title: "Paste Text") {
+                                appState.path.append(AppRoute.paste)
                             }
-                            .padding(.horizontal, 20)
-                            .padding(.bottom, 32)
+                            GridCard(color: Theme.cardPDF, iconName: "doc.fill", title: "Upload PDF") {
+                                appState.path.append(AppRoute.pdf)
+                            }
+                            GridCard(color: Theme.cardScan, iconName: "camera.viewfinder", title: "Scan with Camera") {
+                                appState.path.append(AppRoute.scan)
+                            }
+                            GridCard(color: Theme.cardHistory, iconName: "arrow.triangle.branch", title: "Past Mindmaps") {
+                                appState.path.append(AppRoute.history)
+                            }
                         }
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 32)
                     }
                 }
             }
@@ -84,38 +73,32 @@ struct HomeView: View {
             .navigationDestination(for: AppRoute.self) { route in
                 switch route {
                 case .scan:
-                    CameraView { capturedText in
-                        appState.pendingInputText = capturedText
-                        appState.path.append(AppRoute.processing)
-                    }
-
+                    CameraView(onTextCaptured: processInput)
                 case .pdf:
-                    UploadFileView { extractedText in
-                        appState.pendingInputText = extractedText
-                        appState.path.append(AppRoute.processing)
-                    }
-
+                    UploadFileView(onTextExtracted: processInput)
                 case .paste:
-                    PasteTextView { submittedText in
-                        appState.pendingInputText = submittedText
-                        appState.path.append(AppRoute.processing)
-                    }
-                case .processing: ProcessingView()
-                case .mindmap(let mindMap): MindMapView(mindMap: mindMap)
-                case .chatbot:    EmptyView()
+                    PasteTextView(onSubmit: processInput)
+                case .processing:
+                    ProcessingView()
+                case .mindmap(let mindMap):
+                    MindMapView(mindMap: mindMap)
+                case .chatbot:
+                    EmptyView()
                 case .history:
                     HistoryView(
-                        onTap: { item in
-                            appState.path.append(AppRoute.mindmap(item))
-                        },
-                        onDelete: { id in
-                            HistoryService.shared.delete(id: id)
-                        }
+                        onTap: { appState.path.append(AppRoute.mindmap($0)) },
+                        onDelete: { HistoryService.shared.delete(id: $0) }
                     )
                 }
             }
         }
-        .edgesIgnoringSafeArea(.all)
+        .ignoresSafeArea()
+    }
+    
+    // Helper to handle text extraction routes cleanly
+    private func processInput(_ text: String) {
+        appState.pendingInputText = text
+        appState.path.append(AppRoute.processing)
     }
 }
 
@@ -130,6 +113,7 @@ struct GridCard: View {
         Button(action: action) {
             VStack(spacing: 20) {
                 Spacer()
+                
                 // Icon box
                 RoundedRectangle(cornerRadius: 16)
                     .fill(Theme.white.opacity(0.25))
@@ -151,12 +135,9 @@ struct GridCard: View {
             }
             .frame(maxWidth: .infinity)
             .frame(height: 180)
-            .background(
-                RoundedRectangle(cornerRadius: 24)
-                    .fill(color)
-            )
+            .background(RoundedRectangle(cornerRadius: 24).fill(color))
         }
-        .buttonStyle(PlainButtonStyle())
+        .buttonStyle(.plain)
     }
 }
 

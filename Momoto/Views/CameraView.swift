@@ -9,13 +9,11 @@ import SwiftUI
 import UIKit
 
 struct CameraView: View {
-    
     let onTextCaptured: (String) -> Void
 
     @StateObject private var camera = CameraSessionService()
     @StateObject private var ocr    = OCRViewModel()
     @State private var capturedImage: UIImage?
-    @Environment(\.dismiss) private var dismiss
                                                                                                                 
     var body: some View {
         ZStack {
@@ -25,37 +23,36 @@ struct CameraView: View {
                 cameraArea
                 textArea
                 Spacer(minLength: 0)
-                buttonRow
-                    .padding(.bottom, 16)
+                buttonRow.padding(.bottom, 16)
             }
             .padding(.horizontal, 20)
             .padding(.top, 8)
         }
         .navigationTitle("Scan with Camera")
         .navigationBarTitleDisplayMode(.large)
-        .onAppear  { camera.bootstrap() }
+        .onAppear { camera.bootstrap() }
         .onDisappear { camera.stop() }
         .alert(
             "Couldn't read the text",
             isPresented: Binding(
                 get: { ocr.errorMessage != nil },
                 set: { if !$0 { ocr.errorMessage = nil } }
-            ),
-            actions: { Button("OK", role: .cancel) {} },
-            message: { Text(ocr.errorMessage ?? "") }
-        )
+            )
+        ) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(ocr.errorMessage ?? "")
+        }
     }
 
-    // MARK: - Camera area
-
+    // MARK: - Camera Area
+    
     @ViewBuilder
     private var cameraArea: some View {
         ZStack(alignment: .bottom) {
             Group {
                 if let capturedImage {
-                    Image(uiImage: capturedImage)
-                        .resizable()
-                        .scaledToFill()
+                    Image(uiImage: capturedImage).resizable().scaledToFill()
                 } else if camera.accessState == .allowed {
                     CameraPreview(session: camera.session)
                 } else if camera.accessState == .denied {
@@ -64,11 +61,11 @@ struct CameraView: View {
                     ProgressView().tint(Theme.white)
                 }
             }
+            // Chained separately to avoid the "Extra argument" error
             .frame(maxWidth: .infinity)
             .frame(height: 380)
     
-            shutter
-                .padding(.bottom, 18)
+            shutter.padding(.bottom, 18)
         }
         .background(Theme.darkCard)
         .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
@@ -91,7 +88,7 @@ struct CameraView: View {
         }
     }
                                                                                                                 
-    // MARK: - Text area
+    // MARK: - Text Area
                                                                                                                 
     private var textArea: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -102,19 +99,14 @@ struct CameraView: View {
             ScrollView {
                 Text(displayText)
                     .font(.system(.subheadline, design: .rounded))
-                    .foregroundStyle(ocr.scannedText.isEmpty
-                                     ? Theme.textSecondary
-                                     : Theme.textPrimary)
+                    .foregroundStyle(ocr.scannedText.isEmpty ? Theme.textSecondary : Theme.textPrimary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(14)
             }
             .frame(height: 120)
             .background(Theme.white)
             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .stroke(Theme.stroke, lineWidth: 1)
-            )
+            .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(Theme.stroke, lineWidth: 1))
         }
     }
 
@@ -154,22 +146,14 @@ struct CameraView: View {
     private var shutter: some View {
         Button(action: handleShutter) {
             ZStack {
-                Circle()
-                    .stroke(Theme.white, lineWidth: 4)
-                    .frame(width: 78, height: 78)
-                Circle()
-                    .fill(Theme.white)
-                    .frame(width: 62, height: 62)
-                    .shadow(color: Theme.black.opacity(0.25), radius: 6, y: 3)
-                if ocr.isProcessing {
-                    ProgressView().tint(Theme.red)
-                }
+                Circle().stroke(Theme.white, lineWidth: 4).frame(width: 78, height: 78)
+                Circle().fill(Theme.white).frame(width: 62, height: 62).shadow(color: Theme.black.opacity(0.25), radius: 6, y: 3)
+                if ocr.isProcessing { ProgressView().tint(Theme.red) }
             }
         }
         .disabled(camera.accessState != .allowed || ocr.isProcessing)
         .opacity(camera.accessState != .allowed ? 0.55 : 1)
     }
-
                                                                                                                     
     // MARK: - Actions
 
@@ -191,7 +175,6 @@ struct CameraView: View {
         let text = ocr.scannedText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
         onTextCaptured(text)
-        dismiss()
     }
 }
 
