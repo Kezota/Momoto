@@ -99,7 +99,7 @@ struct HistoryView: View {
             ToolbarItem(placement: .topBarTrailing) {
                 Button(action: { viewModel.toggleDeleteMode() }) {
                     Image(systemName: viewModel.isDeleteMode ? "xmark" : "trash")
-                        .foregroundStyle(Theme.purple)
+                        .foregroundStyle(Theme.red)
                 }
                 .accessibilityLabel(viewModel.isDeleteMode ? "Cancel delete" : "Delete mindmap")
             }
