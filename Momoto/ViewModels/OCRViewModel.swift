@@ -34,9 +34,4 @@ final class OCRViewModel: ObservableObject {
             return nil
         }
     }
-//    func useSampleText() -> String {                   //Buat sample kalau butuh
-//        let sample = MindMapNode.sampleRawText
-//        scannedText = sample
-//        return sample
-//    }
 }

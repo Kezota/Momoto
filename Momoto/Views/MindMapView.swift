@@ -30,14 +30,31 @@ struct MindMapView: View {
 
     // Popup long-press
     @State private var poppedNode: MindMapNode? = nil
-
+    @State private var showChat: Bool = false
+    
     private let columnSpacing: CGFloat = 60
     private let rowSpacing: CGFloat = 20
 
     private var liveScale: CGFloat {
         min(max(scale * pinchDelta, 0.4), 2.5)
     }
-
+    private var chatFab: some View {
+        Button {
+            showChat = true
+        } label: {
+            Image(systemName: "bubble.left.and.bubble.right.fill")
+                .font(.system(size: 22, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(width: 70, height: 100)
+                .background(
+                    Circle().fill(Color.purple)
+                )
+                .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 4)
+        }
+        .buttonStyle(.plain)
+    }
+    
+    
     private var liveOffset: CGSize {
         CGSize(width: offset.width + dragDelta.width,
                height: offset.height + dragDelta.height)
@@ -62,6 +79,16 @@ struct MindMapView: View {
                 }
                 .transition(.opacity.combined(with: .scale(scale: 0.95)))
             }
+            VStack {
+                Spacer()
+                HStack {
+                    chatFab
+                        .frame(alignment: .bottomTrailing)
+                        .padding(.trailing, 20)
+                        .padding(.bottom, 34) // covers home indicator
+                }
+            }
+            .ignoresSafeArea(edges: .bottom) // let it reach the real bottom
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .ignoresSafeArea()
@@ -87,6 +114,11 @@ struct MindMapView: View {
                         Image(systemName: "chevron.left")
                     }
                 }
+            }
+        }
+        .sheet(isPresented: $showChat) {
+            NavigationStack {
+                ChatbotView(context: viewModel.modelContext)
             }
         }
         .onAppear {
@@ -215,6 +247,48 @@ struct MindMapView: View {
     }
 }
 
+// MARK: - Popup
+
+private struct NodePopup: View {
+    let node: MindMapNode
+    let onDismiss: () -> Void
+    
+    var body: some View {
+        Theme.black.opacity(0.15)
+            .ignoresSafeArea()
+            .onTapGesture { onDismiss() }
+            .overlay {
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack {
+                        Text(node.title)
+                            .font(.system(.headline, design: .rounded).weight(.bold))
+                            .foregroundStyle(Theme.textPrimary)
+                        Spacer()
+                        Button(action: onDismiss) {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundStyle(Theme.textSecondary)
+                                .font(.system(.title3, design: .rounded))
+                        }
+                    }
+                    
+                    Divider()
+                    
+                    Text((node.summary?.isEmpty == false) ? node.summary! : "Tidak ada ringkasan.")
+                        .font(.system(.subheadline, design: .rounded))
+                        .foregroundStyle(Theme.textSecondary)
+                        .lineSpacing(3)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(16)
+                .frame(maxWidth: 300)
+                .background(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(Theme.white)
+                        .shadow(color: Theme.black.opacity(0.15), radius: 12, x: 0, y: 4)
+                )
+            }
+    }
+}
 
 #Preview {
     let node = MindMapNode(title: "Preview", symbol: "star", summary: "Preview node", children: [], isExpanded: true)
