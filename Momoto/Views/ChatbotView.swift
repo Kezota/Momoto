@@ -56,7 +56,7 @@ struct ChatbotView: View {
         VStack(spacing: 8) {
             Image(systemName: "bubble.left.and.bubble.right")
                 .font(.system(size: 36))
-                .foregroundStyle(Theme.red.opacity(0.7))
+                .foregroundStyle(Theme.purple.opacity(0.7))
         }
         .padding(.top, 60)
         .padding(.horizontal, 24)
@@ -71,7 +71,7 @@ struct ChatbotView: View {
                 .padding(.vertical, 10)
                 .background(
                     message.role == .user
-                    ? Color.red
+                    ? Color.purple
                     : Color(uiColor: UIColor.secondarySystemGroupedBackground)
                 )
                 .foregroundStyle(message.role == .user ? Color.white : Color.primary)

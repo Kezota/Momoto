@@ -63,32 +63,62 @@ struct MindMapView: View {
     var body: some View {
         let contentSize = canvasSize(positions: cachedLayout.positions)
 
-        ZStack {
-            Theme.white
+        GeometryReader { geometry in
+            ZStack {
+                Theme.white
+                    .ignoresSafeArea()
 
-            ZStack(alignment: .topLeading) {
-                lineLayer(positions: cachedLayout.positions, size: contentSize)
-                nodeLayer(positions: cachedLayout.positions)
-            }
-            .scaleEffect(liveScale, anchor: .topLeading)
-            .offset(liveOffset)
+                // Mindmap Content Layer
+                ZStack(alignment: .topLeading) {
+                    lineLayer(positions: cachedLayout.positions, size: contentSize)
+                    nodeLayer(positions: cachedLayout.positions)
+                }
+                .scaleEffect(liveScale, anchor: .topLeading)
+                .offset(liveOffset)
+                // Constrain the layout size to the viewport to prevent the parent from expanding
+                .frame(width: geometry.size.width, height: geometry.size.height, alignment: .topLeading)
 
-            if let node = poppedNode {
-                NodePopup(node: node) {
-                    withAnimation(.easeInOut(duration: 0.2)) { poppedNode = nil }
+                // Info Overlay (Fixed Position)
+                VStack {
+                    HStack(spacing: 8) {
+                        Image(systemName: "info.circle.fill")
+                            .foregroundStyle(Theme.purple)
+                        Text("Hold any node to view its summary")
+                            .font(.system(.footnote, design: .rounded).weight(.medium))
+                            .foregroundStyle(Theme.textPrimary)
+                    }
+                    .padding(.vertical, 10)
+                    .padding(.horizontal, 16)
+                    .background(.ultraThinMaterial, in: Capsule())
+                    .shadow(color: Theme.black.opacity(0.05), radius: 10, y: 4)
+                    .padding(.top, 110)
+                    .opacity(poppedNode == nil ? 1 : 0)
+                    .animation(.easeInOut(duration: 0.2), value: poppedNode)
+                    .allowsHitTesting(false)
+                    
+                    Spacer()
                 }
-                .transition(.opacity.combined(with: .scale(scale: 0.95)))
-            }
-            VStack {
-                Spacer()
-                HStack {
-                    chatFab
-                        .frame(alignment: .bottomTrailing)
-                        .padding(.trailing, 20)
-                        .padding(.bottom, 34) // covers home indicator
+
+                // Chat FAB (Fixed Position)
+                VStack {
+                    Spacer()
+                    HStack {
+                        Spacer()
+                        chatFab
+                            .padding(.trailing, 20)
+                            .padding(.bottom, 34)
+                    }
+                }
+                .ignoresSafeArea(edges: .bottom)
+
+                // Node Popup
+                if let node = poppedNode {
+                    NodePopup(node: node) {
+                        withAnimation(.easeInOut(duration: 0.2)) { poppedNode = nil }
+                    }
+                    .transition(.opacity.combined(with: .scale(scale: 0.95)))
                 }
             }
-            .ignoresSafeArea(edges: .bottom) // let it reach the real bottom
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .ignoresSafeArea()
@@ -126,23 +156,6 @@ struct MindMapView: View {
         }
         .onChange(of: viewModel.mindMap) { _, _ in
             cachedLayout = buildLayout(node: viewModel.mindMap.root, depth: 0, startY: 0)
-        }
-        .overlay(alignment: .top) {
-            HStack(spacing: 8) {
-                Image(systemName: "info.circle.fill")
-                    .foregroundStyle(Theme.purple)
-                Text("Hold any node to view its summary")
-                    .font(.system(.footnote, design: .rounded).weight(.medium))
-                    .foregroundStyle(Theme.textPrimary)
-            }
-            .padding(.vertical, 10)
-            .padding(.horizontal, 16)
-            .background(.ultraThinMaterial, in: Capsule())
-            .shadow(color: Theme.black.opacity(0.05), radius: 10, y: 4)
-            .padding(.top, 110)
-            .opacity(poppedNode == nil ? 1 : 0)
-            .animation(.easeInOut(duration: 0.2), value: poppedNode)
-            .allowsHitTesting(false)
         }
     }
 

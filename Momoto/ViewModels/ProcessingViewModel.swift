@@ -26,8 +26,9 @@ final class ProcessingViewModel: ObservableObject {
     private var timerTask: Task<Void, Never>?
 
     let loadingTexts = [
-        "Reading your content...",
-        "Structuring mindmap..."
+        "Reading your content",
+        "Identifying key concept",
+        "Structuring mindmap"
     ]
 
     var currentLoadingText: String {
