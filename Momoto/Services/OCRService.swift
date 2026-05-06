@@ -8,7 +8,7 @@ import Foundation
 import UIKit
 import Vision
 
-enum OCRError: Error {
+enum OCRError: Error {  //case dimana ketika tidak ada image atau gagal ekstraksi
     case noImage
     case recognitionFailed(Error)
 }

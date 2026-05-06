@@ -50,4 +50,29 @@ class MindmapViewModel: ObservableObject {
     func selectNode(nodeID: UUID) {
         selectedNodeID = (selectedNodeID == nodeID) ? nil : nodeID
     }
+    // MARK: - Chatbot context
+    
+    var modelContext: ModelContext {
+        ModelContext(
+            rawText: mindMap.rawText,
+            hierarchyOutline: outlineText(from: mindMap.root),
+            selectedNodeTitle: selectedNodeID.flatMap { findTitle(in: mindMap.root, id: $0) }
+        )
+    }
+    
+    private func outlineText(from node: MindMapNode, depth: Int = 0) -> String {
+        let indent = String(repeating: "  ", count: depth)
+        let line = "\(indent)- \(node.title)"
+        let childLines = node.children.map { outlineText(from: $0, depth: depth + 1) }
+        return ([line] + childLines).joined(separator: "\n")
+    }
+    
+    private func findTitle(in node: MindMapNode, id: UUID) -> String? {
+        if node.id == id { return node.title }
+        for child in node.children {
+            if let found = findTitle(in: child, id: id) { return found }
+        }
+        return nil
+    }
+    
 }

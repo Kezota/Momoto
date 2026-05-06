@@ -11,7 +11,7 @@ import UIKit
 import Combine
 
 @MainActor
-final class CameraSessionService: NSObject, ObservableObject {
+final class CameraSessionService: NSObject, ObservableObject { //NSObject untuk pakai delegate
     override init() {
         super.init()
     }
@@ -20,19 +20,21 @@ final class CameraSessionService: NSObject, ObservableObject {
         case denied
         case allowed
     }
-    @Published private(set) var accessState: AccessState = .notDetermined
+    @Published private(set) var accessState: AccessState = .notDetermined //UI can read but not write
     @Published private(set) var isRunning: Bool = false
     @Published var isTorchOn: Bool = false {  //flash camera
-        didSet { applyTorch() }
+        didSet { applyTorch() } //runs everytime the value change
     }
     
     nonisolated let session = AVCaptureSession()
-      nonisolated private let sessionQueue = DispatchQueue(label: "com.momoto.camera.session")
-      nonisolated private let photoOutput = AVCapturePhotoOutput()
-    private var captureContinuation: CheckedContinuation<UIImage?, Never>?
+      nonisolated private let sessionQueue = DispatchQueue(label: "com.momoto.camera.session") //create a separate worker thread so no freeze
+      nonisolated private let photoOutput = AVCapturePhotoOutput() //pHasil foto
+    private var captureContinuation: CheckedContinuation<UIImage?, Never>? // a continuation that will eventually return a UIImage? and can never throw an error (Never)
+    
+    //The outer ? — it's NIL when no photo capture is in progress, non-nil while waiting
     
     func bootstrap() {
-        switch AVCaptureDevice.authorizationStatus(for: .video) {
+        switch AVCaptureDevice.authorizationStatus(for: .video) {  //check if permission is good
         case .authorized:
             accessState = .allowed
             configureAndStart() //Functionnya ada dibawah
@@ -51,7 +53,7 @@ final class CameraSessionService: NSObject, ObservableObject {
         }
     }
     
-    func stop() {
+    func stop() { //.onDisappear
         sessionQueue.async { [weak self] in
             guard let self else { return }
             if self.session.isRunning {
@@ -60,7 +62,7 @@ final class CameraSessionService: NSObject, ObservableObject {
             Task { @MainActor in self.isRunning = false }
         }
     }
-    func capturePhoto() async -> UIImage? {
+    func capturePhoto() async -> UIImage? {   //takes a photo and waits for the result,
         guard accessState == .allowed else { return nil }
         return await withCheckedContinuation { continuation in
             self.captureContinuation = continuation
@@ -73,7 +75,7 @@ final class CameraSessionService: NSObject, ObservableObject {
         }
     }
     
-    private func configureAndStart() {
+    private func configureAndStart() { //wires the camera input device into the session and starts streaming.  Bisa ganti ganti kamera default disini
         sessionQueue.async { [weak self] in
             guard let self else { return }
             self.session.beginConfiguration()
@@ -99,7 +101,7 @@ final class CameraSessionService: NSObject, ObservableObject {
         }
     }
     
-    private func applyTorch() {
+    private func applyTorch() {   //For flash
         sessionQueue.async { [ isTorchOn] in
             guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back),
                   device.hasTorch else { return }
@@ -114,7 +116,7 @@ final class CameraSessionService: NSObject, ObservableObject {
     }
 }
 
-extension CameraSessionService: @preconcurrency AVCapturePhotoCaptureDelegate {
+extension CameraSessionService: @preconcurrency AVCapturePhotoCaptureDelegate {  //AVFoundation calls when a photo finishes processing
     func photoOutput(_ output: AVCapturePhotoOutput,
                      didFinishProcessingPhoto photo: AVCapturePhoto,
                      error: Error?) {
