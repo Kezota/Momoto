@@ -18,11 +18,20 @@ struct PasteTextView: View {
         ZStack {
             Theme.background.ignoresSafeArea()
 
-            VStack(spacing: 24) {
+            VStack(spacing: 8) {
+                HStack {
+                    Text("Paste your text")
+                        .font(.system(.largeTitle, design: .rounded).weight(.bold))
+                        .foregroundStyle(Theme.textPrimary)
+                    Spacer()
+                }
+                .padding(.top, 12)
+
                 Text("We'll summarise it into an interactive mindmap.")
                     .font(.system(.subheadline, design: .rounded))
                     .foregroundStyle(Theme.textSecondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.bottom, 16)
 
                 editorCard
 
@@ -36,8 +45,7 @@ struct PasteTextView: View {
             .padding(.top, 12)
             .padding(.bottom, 24)
         }
-        .navigationTitle("Paste your text")
-        .navigationBarTitleDisplayMode(.large)
+        .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .keyboard) { Spacer() }
             ToolbarItem(placement: .keyboard) {
