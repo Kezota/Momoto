@@ -10,9 +10,9 @@ import UniformTypeIdentifiers
 import UIKit
 
 struct UploadFileView: View {
-    @State private var showImporter: Bool = false
+    @State private var showImporter = false
     @State private var errorMessage: String?
-    @State private var isWorking: Bool = false
+    @State private var isWorking = false
     
     var onTextExtracted: (String) -> Void
 
@@ -25,12 +25,10 @@ struct UploadFileView: View {
 
                 pdfArt
 
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("We'll extract the text and turn it into a mindmap.")
-                        .font(.system(.subheadline, design: .rounded))
-                        .foregroundStyle(Theme.textSecondary)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
+                Text("We'll extract the text and turn it into a mindmap.")
+                    .font(.system(.subheadline, design: .rounded))
+                    .foregroundStyle(Theme.textSecondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
 
                 if let errorMessage {
                     Text(errorMessage)
@@ -47,9 +45,7 @@ struct UploadFileView: View {
                     showImporter = true
                 } label: {
                     HStack(spacing: 10) {
-                        if isWorking {
-                            ProgressView().tint(Theme.white)
-                        }
+                        if isWorking { ProgressView().tint(Theme.white) }
                         Text(isWorking ? "Reading..." : "Choose PDF")
                     }
                 }
@@ -61,15 +57,10 @@ struct UploadFileView: View {
         }
         .navigationTitle("Upload a PDF")
         .navigationBarTitleDisplayMode(.large)
-        .fileImporter(
-            isPresented: $showImporter,
-            allowedContentTypes: [.pdf]
-        ) { result in
+        .fileImporter(isPresented: $showImporter, allowedContentTypes: [.pdf]) { result in
             switch result {
-            case .success(let url):
-                handleURL(url)
-            case .failure(let error):
-                errorMessage = error.localizedDescription
+            case .success(let url): handleURL(url)
+            case .failure(let error): errorMessage = error.localizedDescription
             }
         }
     }
