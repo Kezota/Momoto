@@ -11,24 +11,37 @@ import UIKit
 struct CameraView: View {
     let onTextCaptured: (String) -> Void
     @StateObject private var viewModel = CameraViewModel()
-                                                                                                                
+                                                                                                            
+    @Environment(\.dismiss) private var dismiss
+    
     var body: some View {
         ZStack {
             Theme.background.ignoresSafeArea()
 
-            VStack(spacing: 18) {
-                cameraArea
-                textArea
-                Spacer(minLength: 0)
-                buttonRow.padding(.bottom, 16)
+            if viewModel.ocr.isProcessing {
+                VStack(spacing: 16) {
+                    ProgressView().tint(Theme.purple).scaleEffect(1.5)
+                    Text("Extracting text...")
+                        .font(.system(.headline, design: .rounded))
+                        .foregroundStyle(Theme.textPrimary)
+                }
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 8)
         }
-        .navigationTitle("Scan with Camera")
-        .navigationBarTitleDisplayMode(.large)
-        .onAppear { viewModel.bootstrap() }
-        .onDisappear { viewModel.stop() }
+        .navigationTitle("Scan Document")
+        .navigationBarTitleDisplayMode(.inline)
+        .fullScreenCover(isPresented: $viewModel.isScannerPresented) {
+            DocumentScannerView(
+                onDidFinishWith: { images in
+                    viewModel.isScannerPresented = false
+                    viewModel.processScannedImages(images)
+                },
+                onDidCancel: {
+                    viewModel.isScannerPresented = false
+                    dismiss() // Go back to Home if user cancels scanner
+                }
+            )
+            .ignoresSafeArea()
+        }
         .alert(
             "Couldn't read the text",
             isPresented: Binding(
@@ -36,113 +49,73 @@ struct CameraView: View {
                 set: { if !$0 { viewModel.dismissError() } }
             )
         ) {
-            Button("OK", role: .cancel) {}
+            Button("OK", role: .cancel) { viewModel.retake() }
         } message: {
             Text(viewModel.ocr.errorMessage ?? "")
         }
-    }
-
-    // MARK: - Camera Area
-    
-    @ViewBuilder
-    private var cameraArea: some View {
-        ZStack(alignment: .bottom) {
-            Group {
-                if let capturedImage = viewModel.capturedImage {
-                    Image(uiImage: capturedImage).resizable().scaledToFill()
-                } else if viewModel.camera.accessState == .allowed {
-                    CameraPreview(session: viewModel.camera.session)
-                } else if viewModel.camera.accessState == .denied {
-                    deniedState
-                } else {
-                    ProgressView().tint(Theme.white)
-                }
-            }
-            // Chained separately to avoid the "Extra argument" error
-            .frame(maxWidth: .infinity)
-            .frame(height: 380)
-    
-            shutter.padding(.bottom, 18)
+        .sheet(isPresented: $viewModel.showCapturedTextSheet) {
+            CapturedTextSheet(viewModel: viewModel, onTextCaptured: onTextCaptured)
         }
-        .background(Theme.darkCard)
-        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-        .shadow(color: Theme.black.opacity(0.08), radius: 14, x: 0, y: 6)
-    }
-
-    private var deniedState: some View {
-        VStack(spacing: 10) {
-            Image(systemName: "camera.fill")
-                .font(.system(.largeTitle, design: .rounded).weight(.semibold))
-                .foregroundStyle(Theme.white.opacity(0.85))
-            Text("Camera access is denied")
-                .font(.system(.headline, design: .rounded))
-                .foregroundStyle(Theme.white)
-            Text("Enable camera access in Settings to scan text.")
-                .font(.system(.footnote, design: .rounded))
-                .foregroundStyle(Theme.white.opacity(0.7))
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 32)
-        }
-    }
-                                                                                                                
-    // MARK: - Text Area
-                                                                                                                
-    private var textArea: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("Captured Text")
-                .font(.system(.subheadline, design: .rounded).weight(.semibold))
-                .foregroundStyle(Theme.textSecondary)
-
-            ScrollView {
-                Text(viewModel.displayText)
-                    .font(.system(.subheadline, design: .rounded))
-                    .foregroundStyle(viewModel.ocr.scannedText.isEmpty ? Theme.textSecondary : Theme.textPrimary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(14)
-            }
-            .frame(height: 120)
-            .background(Theme.white)
-            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(Theme.stroke, lineWidth: 1))
-        }
-    }
-
-    // MARK: - Buttons
-
-    private var buttonRow: some View {
-        HStack(spacing: 12) {
-            Button("Clear", action: viewModel.clear)
-                .buttonStyle(SecondaryButtonStyle(color: Theme.red))
-                .disabled(viewModel.clearDisabled)
-
-            Spacer()
-
-            Button(action: { viewModel.handleGenerate(onTextCaptured: onTextCaptured) }) {
-                HStack(spacing: 6) {
-                    Text("Make the Mindmap")
-                    Image(systemName: "arrow.right")
-                }
-            }
-            .buttonStyle(PrimaryButtonStyle(color: Theme.red, isFullWidth: false))
-            .disabled(viewModel.generateDisabled)
-        }
-    }
-
-    // MARK: - Shutter
-
-    private var shutter: some View {
-        Button(action: viewModel.handleShutter) {
-            ZStack {
-                Circle().stroke(Theme.white, lineWidth: 4).frame(width: 78, height: 78)
-                Circle().fill(Theme.white).frame(width: 62, height: 62).shadow(color: Theme.black.opacity(0.25), radius: 6, y: 3)
-                if viewModel.ocr.isProcessing { ProgressView().tint(Theme.red) }
-            }
-        }
-        .disabled(viewModel.camera.accessState != .allowed || viewModel.ocr.isProcessing)
-        .opacity(viewModel.camera.accessState != .allowed ? 0.55 : 1)
     }
                                                                                                                     
 
+}
+
+// MARK: - Captured Text Sheet
+private struct CapturedTextSheet: View {
+    @ObservedObject var viewModel: CameraViewModel
+    let onTextCaptured: (String) -> Void
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Theme.background.ignoresSafeArea()
+                
+                VStack(alignment: .leading, spacing: 20) {
+                    Text("We'll summarise it into an interactive mindmap.")
+                        .font(.system(.subheadline, design: .rounded))
+                        .foregroundStyle(Theme.textSecondary)
+                        .padding(.top, 12)
+                    
+                    ScrollView {
+                        Text(viewModel.ocr.scannedText)
+                            .font(.system(.body, design: .rounded))
+                            .foregroundStyle(Theme.textPrimary)
+                            .lineSpacing(6)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                            .padding(16)
+                    }
+                    .frame(maxHeight: .infinity)
+                    .background(Theme.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(Theme.stroke, lineWidth: 1))
+                    
+                    HStack(spacing: 12) {
+                        Button("Retake") {
+                            viewModel.retake()
+                            dismiss()
+                        }
+                        .buttonStyle(SecondaryButtonStyle(color: Theme.red))
+                        
+                        Button(action: {
+                            dismiss()
+                            viewModel.handleGenerate(onTextCaptured: onTextCaptured)
+                        }) {
+                            Text("Make Mindmap")
+                        }
+                        .buttonStyle(PrimaryButtonStyle(color: Theme.red, isFullWidth: true))
+                        .disabled(viewModel.generateDisabled)
+                    }
+                    .padding(.bottom, 24)
+                }
+                .padding(.horizontal, 20)
+            }
+            .navigationTitle("Captured Text")
+            .navigationBarTitleDisplayMode(.inline)
+        }
+        .presentationDetents([.large])
+    }
 }
 
 #Preview {

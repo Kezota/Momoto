@@ -95,22 +95,22 @@ struct MindMapView: View {
         .onChange(of: viewModel.mindMap) { _, _ in
             cachedLayout = buildLayout(node: viewModel.mindMap.root, depth: 0, startY: 0)
         }
-        .overlay(alignment: .bottom) {
-            if poppedNode == nil {
-                HStack(spacing: 8) {
-                    Image(systemName: "info.circle.fill")
-                        .foregroundStyle(Theme.purple)
-                    Text("Hold any node to view its summary")
-                        .font(.system(.footnote, design: .rounded).weight(.medium))
-                        .foregroundStyle(Theme.textPrimary)
-                }
-                .padding(.vertical, 10)
-                .padding(.horizontal, 16)
-                .background(.ultraThinMaterial, in: Capsule())
-                .shadow(color: Theme.black.opacity(0.05), radius: 10, y: 4)
-                .padding(.bottom, 30)
-                .transition(.opacity.combined(with: .move(edge: .bottom)))
+        .overlay(alignment: .top) {
+            HStack(spacing: 8) {
+                Image(systemName: "info.circle.fill")
+                    .foregroundStyle(Theme.purple)
+                Text("Hold any node to view its summary")
+                    .font(.system(.footnote, design: .rounded).weight(.medium))
+                    .foregroundStyle(Theme.textPrimary)
             }
+            .padding(.vertical, 10)
+            .padding(.horizontal, 16)
+            .background(.ultraThinMaterial, in: Capsule())
+            .shadow(color: Theme.black.opacity(0.05), radius: 10, y: 4)
+            .padding(.top, 110)
+            .opacity(poppedNode == nil ? 1 : 0)
+            .animation(.easeInOut(duration: 0.2), value: poppedNode)
+            .allowsHitTesting(false)
         }
     }
 
@@ -136,8 +136,8 @@ struct MindMapView: View {
                     control2: CGPoint(x: midX, y: endY)
                 )
                 context.stroke(path,
-                               with: .color(Theme.stroke),
-                               style: StrokeStyle(lineWidth: 1.5, lineCap: .round))
+                               with: .color(Theme.textSecondary.opacity(0.6)),
+                               style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
             }
         }
         .frame(width: size.width, height: size.height)
@@ -215,48 +215,6 @@ struct MindMapView: View {
     }
 }
 
-// MARK: - Popup
-
-private struct NodePopup: View {
-    let node: MindMapNode
-    let onDismiss: () -> Void
-
-    var body: some View {
-        Theme.black.opacity(0.15)
-            .ignoresSafeArea()
-            .onTapGesture { onDismiss() }
-            .overlay {
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack {
-                        Text(node.title)
-                            .font(.system(.headline, design: .rounded).weight(.bold))
-                            .foregroundStyle(Theme.textPrimary)
-                        Spacer()
-                        Button(action: onDismiss) {
-                            Image(systemName: "xmark.circle.fill")
-                                .foregroundStyle(Theme.textSecondary)
-                                .font(.system(.title3, design: .rounded))
-                        }
-                    }
-
-                    Divider()
-
-                    Text((node.summary?.isEmpty == false) ? node.summary! : "Tidak ada ringkasan.")
-                        .font(.system(.subheadline, design: .rounded))
-                        .foregroundStyle(Theme.textSecondary)
-                        .lineSpacing(3)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                .padding(16)
-                .frame(maxWidth: 300)
-                .background(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .fill(Theme.white)
-                        .shadow(color: Theme.black.opacity(0.15), radius: 12, x: 0, y: 4)
-                )
-            }
-    }
-}
 
 #Preview {
     let node = MindMapNode(title: "Preview", symbol: "star", summary: "Preview node", children: [], isExpanded: true)

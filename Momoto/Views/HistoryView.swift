@@ -98,10 +98,15 @@ struct HistoryView: View {
         if !viewModel.history.isEmpty {
             ToolbarItem(placement: .topBarTrailing) {
                 Button(action: { viewModel.toggleDeleteMode() }) {
-                    Image(systemName: viewModel.isDeleteMode ? "xmark" : "trash")
-                        .foregroundStyle(Theme.red)
+                    if viewModel.isDeleteMode {
+                        Text("Cancel")
+                            .font(.system(.body, design: .rounded).weight(.semibold))
+                    } else {
+                        Text("Select")
+                            .font(.system(.body, design: .rounded).weight(.semibold))
+                    }
                 }
-                .accessibilityLabel(viewModel.isDeleteMode ? "Cancel delete" : "Delete mindmap")
+                .accessibilityLabel(viewModel.isDeleteMode ? "Cancel selection" : "Select mindmaps")
             }
         }
     }
@@ -110,7 +115,7 @@ struct HistoryView: View {
     @ViewBuilder
     private var confirmDeleteButton: some View {
         if viewModel.isDeleteMode, !viewModel.selectedDeleteID.isEmpty {
-            Button("Delete Now", role: .destructive, action: { viewModel.deleteSelected() })
+            Button("Delete Mindmap", role: .destructive, action: { viewModel.deleteSelected() })
                 .buttonStyle(PrimaryButtonStyle(color: Theme.red, isFullWidth: true))
                 .padding(.horizontal, 20)
                 .padding(.bottom, 8)

@@ -1,18 +1,15 @@
 //
-//  UploadFileView.swift
+//  UploadPhotoView.swift
 //  MomotoMindmap
-//
-//  Created by Kezia Meilany Tandapai on 01/05/26.
 //
 
 import SwiftUI
-import UniformTypeIdentifiers
-import UIKit
+import PhotosUI
 
-struct UploadFileView: View {
-    @StateObject private var viewModel = UploadFileViewModel()
-    @State private var showImporter = false
+struct UploadPhotoView: View {
+    @StateObject private var viewModel = UploadPhotoViewModel()
     @State private var hasAutoPrompted = false
+    @State private var showPicker = false
     
     var onTextExtracted: (String) -> Void
 
@@ -30,27 +27,22 @@ struct UploadFileView: View {
             .padding(.horizontal, 20)
             .padding(.bottom, 24)
         }
-        .navigationTitle("Upload a PDF")
+        .navigationTitle("Use Photo")
         .navigationBarTitleDisplayMode(.large)
         .onAppear {
             if !hasAutoPrompted {
                 hasAutoPrompted = true
-                showImporter = true
+                showPicker = true
             }
         }
-        .fileImporter(isPresented: $showImporter, allowedContentTypes: [.pdf]) { result in
-            switch result {
-            case .success(let url): viewModel.handleURL(url)
-            case .failure(let error): viewModel.errorMessage = error.localizedDescription
-            }
-        }
+        .photosPicker(isPresented: $showPicker, selection: $viewModel.selectedItem, matching: .images, photoLibrary: .shared())
     }
 
     private var initialState: some View {
         VStack(spacing: 24) {
             Spacer()
 
-            pdfArt
+            photoArt
 
             Text("We'll extract the text and turn it into a mindmap.")
                 .font(.system(.subheadline, design: .rounded))
@@ -69,14 +61,14 @@ struct UploadFileView: View {
             Spacer()
 
             Button {
-                showImporter = true
+                showPicker = true
             } label: {
                 HStack(spacing: 10) {
                     if viewModel.isWorking { ProgressView().tint(Theme.white) }
-                    Text(viewModel.isWorking ? "Reading..." : "Choose PDF")
+                    Text(viewModel.isWorking ? "Reading..." : "Choose Photo")
                 }
             }
-            .buttonStyle(PrimaryButtonStyle(color: Theme.yellow, isFullWidth: true))
+            .buttonStyle(PrimaryButtonStyle(color: Theme.cardHistory, isFullWidth: true))
             .disabled(viewModel.isWorking)
         }
     }
@@ -101,34 +93,34 @@ struct UploadFileView: View {
             HStack(spacing: 12) {
                 Button("Re-upload") {
                     viewModel.clear()
-                    showImporter = true
+                    showPicker = true
                 }
-                .buttonStyle(SecondaryButtonStyle(color: Theme.yellow))
+                .buttonStyle(SecondaryButtonStyle(color: Theme.cardHistory))
                 
                 Button(action: {
                     onTextExtracted(viewModel.extractedText)
                 }) {
                     Text("Make Mindmap")
                 }
-                .buttonStyle(PrimaryButtonStyle(color: Theme.yellow, isFullWidth: true))
+                .buttonStyle(PrimaryButtonStyle(color: Theme.cardHistory, isFullWidth: true))
             }
         }
     }
 
-    private var pdfArt: some View {
+    private var photoArt: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(Theme.yellow.opacity(0.15))
+                .fill(Theme.cardHistory.opacity(0.15))
                 .frame(width: 180, height: 220)
-                .shadow(color: Theme.yellow.opacity(0.25), radius: 16, x: 0, y: 10)
+                .shadow(color: Theme.cardHistory.opacity(0.25), radius: 16, x: 0, y: 10)
 
             VStack(spacing: 8) {
-                Image(systemName: "doc.fill")
+                Image(systemName: "photo.fill")
                     .font(.system(size: 90, weight: .regular))
-                    .foregroundStyle(Theme.yellow)
-                Text("PDF")
+                    .foregroundStyle(Theme.cardHistory)
+                Text("PHOTO")
                     .font(.system(.title3, design: .rounded).weight(.heavy))
-                    .foregroundStyle(Theme.yellow)
+                    .foregroundStyle(Theme.cardHistory)
             }
         }
     }
@@ -136,6 +128,6 @@ struct UploadFileView: View {
 
 #Preview {
     NavigationStack {
-        UploadFileView(onTextExtracted: { _ in })
+        UploadPhotoView(onTextExtracted: { _ in })
     }
 }
