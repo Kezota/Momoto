@@ -26,23 +26,37 @@ struct CameraView: View {
                         .font(.system(.headline, design: .rounded))
                         .foregroundStyle(Theme.textPrimary)
                 }
+            } else {
+                LiveTextScannerView(
+                    captureRequestID: $viewModel.captureRequestID,
+                    onTextSectionsChanged: { sections in
+                        viewModel.updateRecognizedTextSections(sections)
+                    },
+                    onImageCaptured: { image, sections, previewSize in
+                        viewModel.handleCapturedImage(image, sections: sections, previewSize: previewSize)
+                    },
+                    onUnavailable: {
+                        viewModel.handleScannerUnavailable()
+                    }
+                )
+                .ignoresSafeArea()
+                
+                VStack {
+                    Spacer()
+                    Button {
+                        viewModel.requestCapture()
+                    } label: {
+                        Label("Capture Text", systemImage: "viewfinder")
+                    }
+                    .buttonStyle(PrimaryButtonStyle(color: Theme.red, isFullWidth: true))
+                    .disabled(viewModel.captureDisabled)
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 28)
+                }
             }
         }
         .navigationTitle("Scan Document")
         .navigationBarTitleDisplayMode(.inline)
-        .fullScreenCover(isPresented: $viewModel.isScannerPresented) {
-            DocumentScannerView(
-                onDidFinishWith: { images in
-                    viewModel.isScannerPresented = false
-                    viewModel.processScannedImages(images)
-                },
-                onDidCancel: {
-                    viewModel.isScannerPresented = false
-                    dismiss() // Go back to Home if user cancels scanner
-                }
-            )
-            .ignoresSafeArea()
-        }
         .alert(
             "Couldn't read the text",
             isPresented: Binding(
@@ -54,8 +68,13 @@ struct CameraView: View {
         } message: {
             Text(viewModel.ocr.errorMessage ?? "")
         }
-        .sheet(isPresented: $viewModel.showCapturedTextSheet) {
-            CapturedTextSheet(viewModel: viewModel, onTextCaptured: onTextCaptured)
+        .sheet(item: $viewModel.activeSheet) { sheet in
+            switch sheet {
+            case .textSelection:
+                CapturedTextSelectionView(viewModel: viewModel)
+            case .capturedText:
+                CapturedTextSheet(viewModel: viewModel, onTextCaptured: onTextCaptured)
+            }
         }
     }
     
