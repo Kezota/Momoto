@@ -60,6 +60,15 @@ struct MindMapView: View {
             ZStack {
                 Theme.white
                     .ignoresSafeArea()
+                    .onTapGesture {
+                        if viewModel.isEditModeActive {
+                            withAnimation(.easeInOut(duration: 0.15)) {
+                                viewModel.selectedNodeID = nil
+                                viewModel.editingNodeID = nil
+                                viewModel.showFloatingMenuForNodeID = nil
+                            }
+                        }
+                    }
                 
                 // Mindmap Content Layer
                 ZStack(alignment: .topLeading) {
@@ -138,6 +147,23 @@ struct MindMapView: View {
                     HStack(spacing: 4) {
                         Image(systemName: "chevron.left")
                     }
+                }
+            }
+            
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        viewModel.isEditModeActive.toggle()
+                        if !viewModel.isEditModeActive {
+                            viewModel.selectedNodeID = nil
+                            viewModel.editingNodeID = nil
+                            viewModel.showFloatingMenuForNodeID = nil
+                        }
+                    }
+                } label: {
+                    Text(viewModel.isEditModeActive ? "Done" : "Edit")
+                        .font(.system(.body, design: .rounded).weight(.semibold))
+                        .foregroundStyle(Theme.purple)
                 }
             }
         }
