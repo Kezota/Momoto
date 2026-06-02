@@ -42,6 +42,14 @@ final class HistoryService {
         save(history: history)
     }
     
+    func update(mindmap: MindMap) {
+        var history = load()
+        if let index = history.firstIndex(where: { $0.id == mindmap.id }) {
+            history[index] = mindmap
+            save(history: history)
+        }
+    }
+    
     func delete(id: UUID) {
         var history = load()
         history.removeAll { $0.id == id } // $0 is first closure parameter -> each mindmap
