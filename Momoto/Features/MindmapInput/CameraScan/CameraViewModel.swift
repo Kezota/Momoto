@@ -6,36 +6,39 @@
 import SwiftUI
 import Combine
 import UIKit
+import Vision
 
 @MainActor
 final class CameraViewModel: ObservableObject {
-    enum ActiveSheet: Identifiable {
+    enum Phase {
         case textSelection
         case capturedText
-        
-        var id: String {
-            switch self {
-            case .textSelection: "textSelection"
-            case .capturedText: "capturedText"
-            }
-        }
     }
     
     struct TextSection: Identifiable, Hashable {
         let id: UUID
         let text: String
         let bounds: CGRect
-        var isIncluded: Bool = true
+        let topLeft: CGPoint
+        let topRight: CGPoint
+        let bottomRight: CGPoint
+        let bottomLeft: CGPoint
     }
+    
+    /// Fraction of the scanner height that's visible between the black bars.
+    /// 0.6 means 60% middle visible, 20% blacked out top + 20% bottom. Tune freely.
+    let visibleHeightRatio: CGFloat = 0.6
     
     var ocr = OCRViewModel()
     
-    @Published var activeSheet: ActiveSheet?
+    @Published var phase: Phase?
     @Published var captureRequestID = 0
     @Published var visibleTextSections: [TextSection] = []
     @Published var capturedTextSections: [TextSection] = []
     @Published var capturedImage: UIImage?
     @Published var capturedPreviewSize: CGSize = .zero
+    @Published var cropRect: CGRect = .zero
+    
     private var cancellables = Set<AnyCancellable>()
     
     init() {
@@ -56,6 +59,10 @@ final class CameraViewModel: ObservableObject {
         visibleTextSections.isEmpty
     }
     
+    var sectionsInCropCount: Int {
+        capturedTextSections.filter { cropRect.intersects($0.bounds) }.count
+    }
+    
     func updateRecognizedTextSections(_ sections: [TextSection]) {
         visibleTextSections = sections
     }
@@ -65,7 +72,6 @@ final class CameraViewModel: ObservableObject {
             ocr.errorMessage = "Point the camera at text before capturing."
             return
         }
-        
         ocr.errorMessage = nil
         captureRequestID += 1
     }
@@ -76,32 +82,69 @@ final class CameraViewModel: ObservableObject {
             return
         }
         
-        capturedImage = image
-        capturedPreviewSize = previewSize
-        capturedTextSections = sections
-        activeSheet = .textSelection
-    }
-    
-    func toggleCapturedSection(_ section: TextSection) {
-        guard let index = capturedTextSections.firstIndex(where: { $0.id == section.id }) else { return }
-        capturedTextSections[index].isIncluded.toggle()
+        // The visible band in scanner-view coordinates.
+        let bandHeight = previewSize.height * (1 - visibleHeightRatio) / 2
+        let visibleWindow = CGRect(
+            x: 0,
+            y: bandHeight,
+            width: previewSize.width,
+            height: previewSize.height - bandHeight * 2
+        )
+        
+        // Crop the photo down to that band.
+        let croppedImage = Self.cropImage(image, toViewRect: visibleWindow, viewSize: previewSize)
+        
+        ocr.isProcessing = true
+        ocr.errorMessage = nil
+        
+        Task {
+            do {
+                let detectedSections = try await Self.recognizeTextSections(in: croppedImage)
+                guard !detectedSections.isEmpty else {
+                    ocr.errorMessage = "Point the camera at text inside the frame."
+                    ocr.isProcessing = false
+                    return
+                }
+                
+                capturedImage = croppedImage
+                capturedPreviewSize = croppedImage.size
+                capturedTextSections = detectedSections
+                
+                // Default crop rectangle inside the now-smaller preview.
+                let insetX = croppedImage.size.width * 0.04
+                let insetY = croppedImage.size.height * 0.06
+                cropRect = CGRect(
+                    x: insetX,
+                    y: insetY,
+                    width: croppedImage.size.width - insetX * 2,
+                    height: croppedImage.size.height - insetY * 2
+                )
+                
+                ocr.isProcessing = false
+                phase = .textSelection
+            } catch {
+                ocr.errorMessage = "Try again because i cant read the text :("
+                ocr.isProcessing = false
+            }
+        }
     }
     
     func useSelectedSections() {
         let selectedText = capturedTextSections
-            .filter(\.isIncluded)
+            .filter { cropRect.intersects($0.bounds) }
+            .sorted { $0.bounds.minY < $1.bounds.minY }
             .map(\.text)
-            .joined(separator: "\n\n")
+            .joined(separator: "\n")
             .trimmingCharacters(in: .whitespacesAndNewlines)
         
         guard !selectedText.isEmpty else {
-            ocr.errorMessage = "Choose at least one text section to continue."
+            ocr.errorMessage = "Adjust the crop area to include text."
             return
         }
         
         ocr.scannedText = selectedText
         ocr.errorMessage = nil
-        activeSheet = .capturedText
+        phase = .capturedText
     }
     
     func handleScannerUnavailable() {
@@ -110,10 +153,11 @@ final class CameraViewModel: ObservableObject {
     
     func retake() {
         clear()
-        activeSheet = nil
+        phase = nil
         capturedTextSections = []
         capturedImage = nil
         capturedPreviewSize = .zero
+        cropRect = .zero
     }
     
     func clear() {
@@ -129,5 +173,105 @@ final class CameraViewModel: ObservableObject {
     
     func dismissError() {
         ocr.errorMessage = nil
+    }
+    
+    // Maps the view-space rectangle into image pixel space (assuming aspectFill
+    // display) and renders just that region into a new UIImage, respecting orientation.
+    private static func cropImage(_ image: UIImage, toViewRect viewRect: CGRect, viewSize: CGSize) -> UIImage {
+        let imageSize = image.size
+        guard viewSize.width > 0, viewSize.height > 0,
+              imageSize.width > 0, imageSize.height > 0 else { return image }
+        
+        let viewAspect = viewSize.width / viewSize.height
+        let imageAspect = imageSize.width / imageSize.height
+        
+        let scale: CGFloat
+        let offsetX: CGFloat
+        let offsetY: CGFloat
+        
+        if imageAspect > viewAspect {
+            // Image wider than view — height fills, sides cropped.
+            scale = imageSize.height / viewSize.height
+            offsetX = (imageSize.width - viewSize.width * scale) / 2
+            offsetY = 0
+        } else {
+            // Image taller than view — width fills, top/bottom cropped.
+            scale = imageSize.width / viewSize.width
+            offsetX = 0
+            offsetY = (imageSize.height - viewSize.height * scale) / 2
+        }
+        
+        let pixelRect = CGRect(
+            x: viewRect.minX * scale + offsetX,
+            y: viewRect.minY * scale + offsetY,
+            width: viewRect.width * scale,
+            height: viewRect.height * scale
+        )
+        
+        let renderer = UIGraphicsImageRenderer(size: pixelRect.size)
+        return renderer.image { _ in
+            image.draw(at: CGPoint(x: -pixelRect.minX, y: -pixelRect.minY))
+        }
+    }
+    
+    private static func recognizeTextSections(in image: UIImage) async throws -> [TextSection] {
+        guard let cgImage = image.cgImage else { return [] }
+        
+        return try await withCheckedThrowingContinuation { continuation in
+            let request = VNRecognizeTextRequest { request, error in
+                if let error {
+                    continuation.resume(throwing: OCRError.recognitionFailed(error))
+                    return
+                }
+                
+                let observations = request.results as? [VNRecognizedTextObservation] ?? []
+                let imageSize = image.size
+                let sections = observations.compactMap { observation -> TextSection? in
+                    guard let candidate = observation.topCandidates(1).first else { return nil }
+                    let text = candidate.string.trimmingCharacters(in: .whitespacesAndNewlines)
+                    guard !text.isEmpty else { return nil }
+                    
+                    let textRange = candidate.string.startIndex..<candidate.string.endIndex
+                    guard let rectangle = try? candidate.boundingBox(for: textRange) else { return nil }
+                    
+                    let topLeft = imagePoint(from: rectangle.topLeft, imageSize: imageSize)
+                    let topRight = imagePoint(from: rectangle.topRight, imageSize: imageSize)
+                    let bottomRight = imagePoint(from: rectangle.bottomRight, imageSize: imageSize)
+                    let bottomLeft = imagePoint(from: rectangle.bottomLeft, imageSize: imageSize)
+                    let minX = min(topLeft.x, topRight.x, bottomRight.x, bottomLeft.x)
+                    let maxX = max(topLeft.x, topRight.x, bottomRight.x, bottomLeft.x)
+                    let minY = min(topLeft.y, topRight.y, bottomRight.y, bottomLeft.y)
+                    let maxY = max(topLeft.y, topRight.y, bottomRight.y, bottomLeft.y)
+                    
+                    return TextSection(
+                        id: UUID(),
+                        text: text,
+                        bounds: CGRect(x: minX, y: minY, width: maxX - minX, height: maxY - minY),
+                        topLeft: topLeft,
+                        topRight: topRight,
+                        bottomRight: bottomRight,
+                        bottomLeft: bottomLeft
+                    )
+                }
+                
+                continuation.resume(returning: sections)
+            }
+            
+            request.recognitionLevel = .accurate
+            request.usesLanguageCorrection = true
+            
+            do {
+                try VNImageRequestHandler(cgImage: cgImage, options: [:]).perform([request])
+            } catch {
+                continuation.resume(throwing: OCRError.recognitionFailed(error))
+            }
+        }
+    }
+    
+    private static func imagePoint(from normalizedPoint: CGPoint, imageSize: CGSize) -> CGPoint {
+        CGPoint(
+            x: normalizedPoint.x * imageSize.width,
+            y: (1 - normalizedPoint.y) * imageSize.height
+        )
     }
 }

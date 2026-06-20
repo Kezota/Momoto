@@ -29,7 +29,7 @@ struct LiveTextScannerView: UIViewControllerRepresentable {
             isHighFrameRateTrackingEnabled: false,
             isPinchToZoomEnabled: true,
             isGuidanceEnabled: false,
-            isHighlightingEnabled: true
+            isHighlightingEnabled: false
         )
         scanner.delegate = context.coordinator
         
@@ -84,6 +84,10 @@ struct LiveTextScannerView: UIViewControllerRepresentable {
             
             let sections = currentSections
             let previewSize = scanner.view.bounds.size
+            guard previewSize.width > 0, previewSize.height > 0 else {
+                onTextSectionsChanged([])
+                return
+            }
             
             Task { @MainActor in
                 do {
@@ -109,11 +113,20 @@ struct LiveTextScannerView: UIViewControllerRepresentable {
                     height: max(bounds.bottomLeft.y, bounds.bottomRight.y) - min(bounds.topLeft.y, bounds.topRight.y)
                 )
                 
-                return CameraViewModel.TextSection(id: text.id, text: transcript, bounds: rect)
+                return CameraViewModel.TextSection(
+                    id: text.id,
+                    text: transcript,
+                    bounds: rect,
+                    topLeft: bounds.topLeft,
+                    topRight: bounds.topRight,
+                    bottomRight: bounds.bottomRight,
+                    bottomLeft: bounds.bottomLeft
+                )
             }
             
             currentSections = sections
             onTextSectionsChanged(sections)
         }
+        
     }
 }
