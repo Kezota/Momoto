@@ -87,5 +87,6 @@ struct MindmapNodeView: View {
                 editText = node.title
             }
         }
+        .onDisappear()
     }
 }
