@@ -33,7 +33,9 @@ struct UploadPhotoView: View {
         .onAppear {
             if !hasAutoPrompted {
                 hasAutoPrompted = true
-                showPicker = true
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    showPicker = true
+                }
             }
         }
         .photosPicker(isPresented: $showPicker, selection: $viewModel.selectedItem, matching: .images, photoLibrary: .shared())
