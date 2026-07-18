@@ -12,7 +12,7 @@ final class CameraViewModel: ObservableObject {
     var ocr = OCRViewModel()
     
     @Published var showCapturedTextSheet: Bool = false
-    @Published var isScannerPresented: Bool = true
+    @Published var isScannerPresented: Bool = false
     private var cancellables = Set<AnyCancellable>()
     
     init() {

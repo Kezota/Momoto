@@ -12,6 +12,7 @@ struct CameraView: View {
     
     let onTextCaptured: (String) -> Void
     @StateObject private var viewModel = CameraViewModel()
+    @State private var hasAutoPrompted = false
     
     @Environment(\.dismiss) private var dismiss
     
@@ -56,6 +57,14 @@ struct CameraView: View {
         }
         .sheet(isPresented: $viewModel.showCapturedTextSheet) {
             CapturedTextSheet(viewModel: viewModel, onTextCaptured: onTextCaptured)
+        }
+        .onAppear {
+            if !hasAutoPrompted {
+                hasAutoPrompted = true
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    viewModel.isScannerPresented = true
+                }
+            }
         }
     }
     
