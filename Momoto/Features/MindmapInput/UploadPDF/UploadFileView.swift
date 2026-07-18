@@ -36,7 +36,9 @@ struct UploadFileView: View {
         .onAppear {
             if !hasAutoPrompted {
                 hasAutoPrompted = true
-                showImporter = true
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    showImporter = true
+                }
             }
         }
         .fileImporter(isPresented: $showImporter, allowedContentTypes: [.pdf]) { result in
