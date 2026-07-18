@@ -31,7 +31,7 @@ struct ProcessingView: View {
             }
         }
         .navigationBarBackButtonHidden(true)
-        .task { await viewModel.generate(from: appState.pendingInputText, source: "App") }
+        .task { await viewModel.generate(from: appState.pendingInputText, preferences: appState.pendingPreferences, source: "App") }
     }
     
     
@@ -98,7 +98,7 @@ struct ProcessingView: View {
                 .foregroundStyle(Theme.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
-            Button("Try Again") { Task { await viewModel.generate(from: appState.pendingInputText, source: "App") } }
+            Button("Try Again") { Task { await viewModel.generate(from: appState.pendingInputText, preferences: appState.pendingPreferences, source: "App") } }
                 .buttonStyle(PrimaryButtonStyle(color: Theme.purple, isFullWidth: false))
         }
         .padding()

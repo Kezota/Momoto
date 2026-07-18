@@ -33,6 +33,7 @@ struct MindMapView: View {
     private var liveScale: CGFloat {
         min(max(scale * pinchDelta, 0.4), 2.5)
     }
+    
     private var chatFab: some View {
         Button {
             showChat = true
@@ -49,7 +50,6 @@ struct MindMapView: View {
         .buttonStyle(.plain)
     }
     
-    
     private var liveOffset: CGSize {
         CGSize(width: offset.width + dragDelta.width,
                height: offset.height + dragDelta.height)
@@ -60,6 +60,15 @@ struct MindMapView: View {
             ZStack {
                 Theme.white
                     .ignoresSafeArea()
+                    .onTapGesture {
+                        if viewModel.isEditModeActive {
+                            withAnimation(.easeInOut(duration: 0.15)) {
+                                viewModel.selectedNodeID = nil
+                                viewModel.editingNodeID = nil
+                                viewModel.showFloatingMenuForNodeID = nil
+                            }
+                        }
+                    }
                 
                 // Mindmap Content Layer
                 ZStack(alignment: .topLeading) {
@@ -78,9 +87,11 @@ struct MindMapView: View {
                     HStack(spacing: 8) {
                         Image(systemName: "info.circle.fill")
                             .foregroundStyle(Theme.purple)
-                        Text("Hold any node to view its summary")
+                        Text(viewModel.isEditModeActive ? "Hold any node to show the edit toolbar" : "Hold any node to view its summary")
                             .font(.system(.footnote, design: .rounded).weight(.medium))
                             .foregroundStyle(Theme.textPrimary)
+                            .contentTransition(.numericText())
+                            .animation(.easeInOut, value: viewModel.isEditModeActive)
                     }
                     .padding(.vertical, 10)
                     .padding(.horizontal, 16)
@@ -140,6 +151,23 @@ struct MindMapView: View {
                     }
                 }
             }
+            
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        viewModel.isEditModeActive.toggle()
+                        if !viewModel.isEditModeActive {
+                            viewModel.selectedNodeID = nil
+                            viewModel.editingNodeID = nil
+                            viewModel.showFloatingMenuForNodeID = nil
+                        }
+                    }
+                } label: {
+                    Text(viewModel.isEditModeActive ? "Done" : "Edit")
+                        .font(.system(.body, design: .rounded).weight(.semibold))
+                        .foregroundStyle(Theme.purple)
+                }
+            }
         }
         .sheet(isPresented: $showChat) {
             NavigationStack {
@@ -153,6 +181,9 @@ struct MindMapView: View {
 #Preview {
     let node = MindMapNode(title: "Preview", symbol: "star", summary: "Preview node", children: [], isExpanded: true)
     let map = MindMap(id: UUID(), title: "Preview", root: node, rawText: "", createdAt: .now, source: "Preview")
-    
-    MindMapView(mindMap: map)
+
+    NavigationStack {
+        MindMapView(mindMap: map)
+            .navigationBarTitleDisplayMode(.inline)
+    }
 }
