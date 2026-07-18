@@ -11,16 +11,16 @@ import FoundationModels
 
 final class TextToNodeService {
     
-    func generateMindMap(from text: String) async throws -> MindMapNode {
+    func generateMindMap(from text: String, preferences: MindmapPreferences) async throws -> MindMapNode {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard trimmed.count >= 10 else { throw TextToNodeError.inputTooShort }
-        
-        let jsonString = try await requestAIResponse(for: trimmed)
+
+        let jsonString = try await requestAIResponse(for: trimmed, preferences: preferences)
         return try decode(jsonString: jsonString)
     }
-    
-    private func requestAIResponse(for text: String) async throws -> String {
-        let prompt = buildPrompt(for: text)
+
+    private func requestAIResponse(for text: String, preferences: MindmapPreferences) async throws -> String {
+        let prompt = buildPrompt(for: text, preferences: preferences)
         
         let model = SystemLanguageModel.default
         let session = LanguageModelSession(model: model)
@@ -38,7 +38,7 @@ final class TextToNodeService {
     }
     
     // AI Prompt
-    private func buildPrompt(for text: String) -> String {
+    private func buildPrompt(for text: String, preferences: MindmapPreferences) -> String {
         """
         You are a deterministic mind map generator.
 
@@ -50,8 +50,8 @@ final class TextToNodeService {
         - The output MUST be parseable by a JSON parser without modification.
 
         STRUCTURE RULES:
-        - Maximum depth: 3 levels (root → branches → leaves).
-        - Root must always have at least 2 children unless input is extremely short.
+        - Maximum depth: \(preferences.detail.maxDepth) levels (root → branches → leaves).
+        - Root must have \(preferences.detail.rootChildren) children unless input is extremely short.
         - Each node MUST include: title, summary, symbol, children.
         - "children" MUST always exist (use [] if empty).
 
@@ -62,8 +62,13 @@ final class TextToNodeService {
 
         SUMMARY RULES:
         - Exactly 1 sentence.
-        - Maximum 15 words.
+        - Maximum \(preferences.detail.summaryWordCap) words.
         - Must be meaningful and descriptive (not fragments).
+
+        PERSONALIZATION:
+        - Detail: \(preferences.detail.promptDescriptor)
+        - Complexity: \(preferences.complexity.promptDescriptor)
+        - Language: \(preferences.language.promptDescriptor)
 
         SYMBOL RULES:
         - Use ONLY simple, safe SF Symbols:
