@@ -47,12 +47,12 @@ final class ProcessingViewModel: ObservableObject {
         timerTask = nil
     }
     
-    func generate(from text: String, source: String) async {
+    func generate(from text: String, preferences: MindmapPreferences, source: String) async {
         state = .loading
         startLoadingAnimation()
         let trimmedText = String(text.prefix(maxCharacters))
         do {
-            let rootNode = try await service.generateMindMap(from: trimmedText)
+            let rootNode = try await service.generateMindMap(from: trimmedText, preferences: preferences)
             let mindMap = MindMap(
                 id: UUID(),
                 title: rootNode.title,
