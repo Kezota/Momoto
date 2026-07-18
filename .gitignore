@@ -1,0 +1,36 @@
+# Xcode
+build/
+DerivedData/
+*.xcuserstate
+*.xcscmblueprint
+*.xccheckout
+xcuserdata/
+*.moved-aside
+*.xcworkspace/xcuserdata/
+*.playground/timeline.xctimeline
+*.playground/playground.xcworkspace
+
+# Swift Package Manager
+.build/
+Packages/
+Package.pins
+Package.resolved
+.swiftpm/
+
+# CocoaPods (kalau pakai)
+Pods/
+
+# Carthage (kalau pakai)
+Carthage/Build/
+
+# fastlane (kalau pakai buat CI/CD nanti)
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output
+
+# macOS
+**/.DS_Store
+
+# IDE lain (jaga-jaga kalau ada yang pakai VS Code juga)
+.vscode/
