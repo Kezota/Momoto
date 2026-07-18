@@ -10,6 +10,7 @@ import Combine
 class AppState: ObservableObject {
     @Published var path = NavigationPath()
     @Published var pendingInputText = ""
+    @Published var pendingPreferences: MindmapPreferences = .default
 }
 
 // MARK: - HomeView
@@ -79,6 +80,11 @@ struct HomeView: View {
                     UploadPhotoView(onTextExtracted: processInput)
                 case .paste:
                     PasteTextView(onSubmit: processInput)
+                case .preferences:
+                    PreferencesView(onGenerate: { prefs in
+                        appState.pendingPreferences = prefs
+                        appState.path.append(AppRoute.processing)
+                    })
                 case .processing:
                     ProcessingView()
                 case .mindmap(let mindMap):
@@ -98,7 +104,7 @@ struct HomeView: View {
     // Helper to handle text extraction routes cleanly
     private func processInput(_ text: String) {
         appState.pendingInputText = text
-        appState.path.append(AppRoute.processing)
+        appState.path.append(AppRoute.preferences)
     }
 }
 
