@@ -54,7 +54,108 @@ struct MindMapView: View {
         CGSize(width: offset.width + dragDelta.width,
                height: offset.height + dragDelta.height)
     }
-    
+
+    // Screen-space frame of a node, projecting its canvas position through the
+    // current pan/zoom so the edit menu anchor is computed independently of any
+    // ancestor transform (UIEditMenuInteraction positions unreliably when its
+    // host view sits inside a scaled/offset SwiftUI hierarchy).
+    private func screenFrame(for pos: NodePosition) -> CGRect {
+        CGRect(
+            x: liveOffset.width + pos.origin.x * liveScale,
+            y: liveOffset.height + pos.origin.y * liveScale,
+            width: MindmapNodeView.width * liveScale,
+            height: MindmapNodeView.height * liveScale
+        )
+    }
+
+    @ViewBuilder
+    private var editMenuAnchor: some View {
+        if let menuNodeID = viewModel.showFloatingMenuForNodeID,
+           viewModel.editingNodeID == nil,
+           let pos = viewModel.cachedLayout.positions[menuNodeID] {
+            let frame = screenFrame(for: pos)
+            Color.clear
+                .frame(width: frame.width, height: frame.height)
+                .background(
+                    EditMenuBridge(
+                        isPresented: true,
+                        sections: editMenuSections(for: pos.node),
+                        onDismiss: {
+                            viewModel.showFloatingMenuForNodeID = nil
+                        }
+                    )
+                )
+                .position(x: frame.midX, y: frame.midY)
+                .allowsHitTesting(false)
+        }
+    }
+
+    private func editMenuSections(for node: MindMapNode) -> [EditMenuSection] {
+        let isRoot = node.id == viewModel.mindMap.root.id
+        return [
+            EditMenuSection([
+                EditMenuAction(title: isRoot ? "" : "Cut", icon: "scissors") {
+                    viewModel.cutNode(node)
+                },
+                EditMenuAction(title: "Copy", icon: "doc.on.doc") {
+                    viewModel.copyNode(node)
+                },
+                EditMenuAction(title: "Paste", icon: "doc.on.clipboard") {
+                    viewModel.pasteNode(to: node.id)
+                }
+            ].filter { !$0.title.isEmpty }, isCompact: true),
+            EditMenuSection([
+                EditMenuAction(title: "Rename", icon: "pencil") {
+                    viewModel.editingNodeID = node.id
+                },
+                EditMenuAction(title: "Change Icon", icon: "square.grid.2x2") {
+                    viewModel.iconPickerNodeID = node.id
+                },
+                EditMenuAction(title: isRoot ? "" : "Duplicate", icon: "plus.square.on.square") {
+                    if let newID = viewModel.duplicateNode(node) {
+                        viewModel.selectedNodeID = newID
+                    }
+                }
+            ].filter { !$0.title.isEmpty }),
+            EditMenuSection([
+                EditMenuAction(title: "Delete", icon: "trash", isDestructive: true) {
+                    viewModel.deleteNode(nodeID: node.id)
+                }
+            ]),
+            EditMenuSection([
+                EditMenuAction(
+                    title: node.children.isEmpty ? "" : (node.isExpanded ? "Fold" : "Unfold"),
+                    icon: node.isExpanded ? "rectangle.compress.vertical" : "rectangle.expand.vertical"
+                ) {
+                    viewModel.toggleExpand(nodeID: node.id)
+                }
+            ].filter { !$0.title.isEmpty }),
+            EditMenuSection([
+                EditMenuAction(title: "Add Child", icon: "arrow.right.circle") {
+                    let newID = viewModel.addChild(to: node.id)
+                    viewModel.selectedNodeID = newID
+                    viewModel.editingNodeID = newID
+                },
+                EditMenuAction(title: isRoot ? "" : "Add Sibling", icon: "arrow.down.circle") {
+                    if let newID = viewModel.addSibling(to: node.id) {
+                        viewModel.selectedNodeID = newID
+                        viewModel.editingNodeID = newID
+                    }
+                }
+            ].filter { !$0.title.isEmpty }),
+            EditMenuSection([
+                EditMenuAction(title: "Grow Ideas", icon: "sparkles") {
+                    viewModel.growIdeas(for: node)
+                }
+            ]),
+            EditMenuSection([
+                EditMenuAction(title: "Detail", icon: "info.circle") {
+                    poppedNode = node
+                }
+            ])
+        ]
+    }
+
     var body: some View {
         GeometryReader { geometry in
             ZStack {
@@ -81,7 +182,12 @@ struct MindMapView: View {
                 .offset(liveOffset)
                 // Constrain the layout size to the viewport to prevent the parent from expanding
                 .frame(width: geometry.size.width, height: geometry.size.height, alignment: .topLeading)
-                
+
+                // Edit menu anchor — deliberately sits OUTSIDE the scaled/offset canvas above
+                // so its computed screen frame is the source of truth, not an ancestor transform.
+                editMenuAnchor
+                    .frame(width: geometry.size.width, height: geometry.size.height, alignment: .topLeading)
+
                 // Info Overlay (Fixed Position)
                 VStack {
                     HStack(spacing: 8) {
@@ -172,6 +278,16 @@ struct MindMapView: View {
         .sheet(isPresented: $showChat) {
             NavigationStack {
                 ChatbotView(context: viewModel.modelContext)
+            }
+        }
+        .sheet(isPresented: Binding(
+            get: { viewModel.iconPickerNodeID != nil },
+            set: { if !$0 { viewModel.iconPickerNodeID = nil } }
+        )) {
+            if let nodeID = viewModel.iconPickerNodeID, let node = viewModel.findNode(id: nodeID) {
+                IconPickerView(currentSymbol: node.symbol) { symbol in
+                    viewModel.setSymbol(nodeID: nodeID, symbol: symbol)
+                }
             }
         }
     }

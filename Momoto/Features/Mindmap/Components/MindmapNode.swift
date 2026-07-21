@@ -12,6 +12,7 @@ struct MindmapNodeView: View {
     let depth: Int
     let isSelected: Bool
     let isEditing: Bool
+    var isGenerating: Bool = false
     let onCommit: (String) -> Void
     var focusedNodeID: FocusState<UUID?>.Binding
     
@@ -38,11 +39,6 @@ struct MindmapNodeView: View {
                 .foregroundStyle(Theme.textPrimary)
                 .textFieldStyle(.plain)
                 .frame(maxWidth: .infinity)
-                .onChange(of: focusedNodeID.wrappedValue) { _, newValue in
-                    if newValue != node.id {
-                        onCommit(editText)
-                    }
-                }
             } else {
                 Text(node.title)
                     .font(.system(depth == 0 ? .headline : .subheadline, design: .rounded))
@@ -55,8 +51,11 @@ struct MindmapNodeView: View {
             
             Spacer(minLength: 0)
             
-            // Show chevron only when the node has children
-            if !node.children.isEmpty {
+            if isGenerating {
+                ProgressView()
+                    .controlSize(.mini)
+            } else if !node.children.isEmpty {
+                // Show chevron only when the node has children
                 Image(systemName: node.isExpanded ? "chevron.left" : "chevron.right")
                     .font(.system(.caption, design: .rounded).weight(.bold))
                     .foregroundStyle(Theme.textSecondary)
@@ -82,9 +81,11 @@ struct MindmapNodeView: View {
                 editText = node.title
             }
         }
-        .onChange(of: isEditing) { _, newValue in
+        .onChange(of: isEditing) { wasEditing, newValue in
             if newValue {
                 editText = node.title
+            } else if wasEditing {
+                onCommit(editText)
             }
         }
         .onDisappear()
