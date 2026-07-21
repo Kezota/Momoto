@@ -48,7 +48,7 @@ struct MindMapView: View {
                 .foregroundStyle(.white)
                 .frame(width: 70, height: 100)
                 .background(
-                    Circle().fill(Color.purple)
+                    Circle().fill(Theme.purple)
                 )
                 .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 4)
         }

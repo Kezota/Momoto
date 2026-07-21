@@ -7,12 +7,19 @@
 
 import SwiftUI
 
+private struct MarkdownLine: Identifiable {
+    let id = UUID()
+    let isBullet: Bool
+    let content: AttributedString
+}
+
 struct ChatbotView: View {
     let context: ModelContext
-    
+
     @StateObject private var viewModel = ChatbotViewModel()
     @FocusState private var inputFocused: Bool
-    
+    @Environment(\.dismiss) private var dismiss
+
     var body: some View {
         VStack(spacing: 0) {
             messageList
@@ -22,8 +29,20 @@ struct ChatbotView: View {
         .background(Theme.background.ignoresSafeArea())
         .navigationTitle("Ask about the Mindmap")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button {
+                    dismiss()
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 16))
+                        .symbolRenderingMode(.palette)
+                        .foregroundStyle(.secondary, Color(uiColor: .systemGray5))
+                }
+            }
+        }
     }
-    
+
     private var messageList: some View {
         ScrollViewReader { proxy in
             ScrollView {
@@ -65,17 +84,28 @@ struct ChatbotView: View {
     private func bubble(for message: ChatMessage) -> some View {
         HStack {
             if message.role == .user { Spacer(minLength: 40) }
-            Text(message.text)
-                .font(.system(.body, design: .rounded))
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-                .background(
-                    message.role == .user
-                    ? Color.purple
-                    : Color(uiColor: UIColor.secondarySystemGroupedBackground)
-                )
-                .foregroundStyle(message.role == .user ? Color.white : Color.primary)
-                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            VStack(alignment: .leading, spacing: 4) {
+                ForEach(markdownLines(from: message.text)) { line in
+                    if line.isBullet {
+                        HStack(alignment: .top, spacing: 6) {
+                            Text("•")
+                            Text(line.content)
+                        }
+                    } else {
+                        Text(line.content)
+                    }
+                }
+            }
+            .font(.system(.body, design: .rounded))
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(
+                message.role == .user
+                ? Theme.purple
+                : Color(uiColor: UIColor.secondarySystemGroupedBackground)
+            )
+            .foregroundStyle(message.role == .user ? Color.white : Color.primary)
+            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
             if message.role == .assistant { Spacer(minLength: 40) }
         }
     }
@@ -110,7 +140,7 @@ struct ChatbotView: View {
             } label: {
                 Image(systemName: "arrow.up.circle.fill")
                     .font(.system(size: 32))
-                    .foregroundStyle(canSend ? Color.purple : Color.gray.opacity(0.4))
+                    .foregroundStyle(canSend ? Theme.purple : Color.gray.opacity(0.4))
             }
             .disabled(!canSend)
         }
@@ -124,6 +154,22 @@ struct ChatbotView: View {
         && !viewModel.isThinking
     }
     
+    // `Text(String)` never parses Markdown — only `Text(LocalizedStringKey)` (string literals) does —
+    // and even `Text(AttributedString)` only renders inline attributes like bold/italic; it has no
+    // concept of rendering list/bullet structure, so bullets have to be split out and drawn by hand.
+    private func markdownLines(from text: String) -> [MarkdownLine] {
+        let options = AttributedString.MarkdownParsingOptions(interpretedSyntax: .inlineOnlyPreservingWhitespace)
+        return text.components(separatedBy: .newlines).compactMap { rawLine in
+            let trimmed = rawLine.trimmingCharacters(in: .whitespaces)
+            guard !trimmed.isEmpty else { return nil }
+
+            let isBullet = trimmed.hasPrefix("- ") || trimmed.hasPrefix("* ") || trimmed.hasPrefix("• ")
+            let stripped = isBullet ? String(trimmed.dropFirst(2)) : trimmed
+            let content = (try? AttributedString(markdown: stripped, options: options)) ?? AttributedString(stripped)
+            return MarkdownLine(isBullet: isBullet, content: content)
+        }
+    }
+
     private func scrollToBottom(using proxy: ScrollViewProxy) {
         withAnimation(.easeOut(duration: 0.2)) {
             if viewModel.isThinking {
