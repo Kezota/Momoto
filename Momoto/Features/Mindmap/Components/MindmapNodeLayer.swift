@@ -19,6 +19,8 @@ struct MindmapNodeLayer: View {
                 isSelected: viewModel.selectedNodeID == pos.node.id,
                 isEditing: viewModel.editingNodeID == pos.node.id,
                 isGenerating: viewModel.generatingNodeID == pos.node.id,
+                branchIndex: pos.branchIndex,
+                height: pos.height,
                 onCommit: { newTitle in
                     viewModel.renameNode(nodeID: pos.node.id, newTitle: newTitle)
                     viewModel.editingNodeID = nil

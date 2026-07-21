@@ -64,7 +64,7 @@ struct MindMapView: View {
             x: liveOffset.width + pos.origin.x * liveScale,
             y: liveOffset.height + pos.origin.y * liveScale,
             width: MindmapNodeView.width * liveScale,
-            height: MindmapNodeView.height * liveScale
+            height: pos.height * liveScale
         )
     }
 
