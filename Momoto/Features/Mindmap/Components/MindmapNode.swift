@@ -16,7 +16,7 @@ struct MindmapNodeView: View {
     var branchIndex: Int? = nil
     var height: CGFloat = nodeMinHeight
     let onCommit: (String) -> Void
-    var focusedNodeID: FocusState<UUID?>.Binding
+    var focusedNodeID: FocusState<UUID?>.Binding? = nil
 
     @State private var editText: String = ""
 
@@ -33,10 +33,18 @@ struct MindmapNodeView: View {
             }
 
             if isEditing {
-                TextField("", text: $editText, onCommit: {
-                    onCommit(editText)
-                })
-                .focused(focusedNodeID, equals: node.id)
+                Group {
+                    if let focusedNodeID {
+                        TextField("", text: $editText, onCommit: {
+                            onCommit(editText)
+                        })
+                        .focused(focusedNodeID, equals: node.id)
+                    } else {
+                        TextField("", text: $editText, onCommit: {
+                            onCommit(editText)
+                        })
+                    }
+                }
                 .font(.system(depth == 0 ? .headline : .subheadline, design: .rounded))
                 .fontWeight(depth == 0 ? .bold : .semibold)
                 .foregroundStyle(textColor)

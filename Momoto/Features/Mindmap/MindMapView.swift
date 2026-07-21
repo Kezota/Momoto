@@ -29,6 +29,11 @@ struct MindMapView: View {
     // Popup long-press
     @State private var poppedNode: MindMapNode? = nil
     @State private var showChat: Bool = false
+
+    // Export
+    @State private var exportedImage: UIImage? = nil
+    @State private var showShareSheet: Bool = false
+    @State private var isExportingImage: Bool = false
     
     private var liveScale: CGFloat {
         min(max(scale * pinchDelta, 0.4), 2.5)
@@ -66,6 +71,34 @@ struct MindMapView: View {
             width: MindmapNodeView.width * liveScale,
             height: pos.height * liveScale
         )
+    }
+
+    // Renders the full tree (current fold/unfold state) to an image, independent of the
+    // on-screen pan/zoom, so exports always capture the whole mindmap rather than the viewport.
+    @MainActor
+    private func renderMindmapImage() -> UIImage? {
+        let exportView = MindmapExportView(
+            positions: viewModel.cachedLayout.positions,
+            contentSize: viewModel.contentSize
+        )
+        let renderer = ImageRenderer(content: exportView)
+        renderer.scale = UIScreen.main.scale
+        return renderer.uiImage
+    }
+
+    // Kicks off the render with a visible loading state and only opens the share sheet once
+    // the image is fully ready — ImageRenderer can return a blank first frame if the share
+    // sheet is presented in the same tick the render was requested.
+    private func exportAndShare() {
+        isExportingImage = true
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 150_000_000)
+            exportedImage = renderMindmapImage()
+            isExportingImage = false
+            if exportedImage != nil {
+                showShareSheet = true
+            }
+        }
     }
 
     @ViewBuilder
@@ -159,8 +192,9 @@ struct MindMapView: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                Theme.white
+                (viewModel.isEditModeActive ? Theme.purple.opacity(0.05) : Theme.white)
                     .ignoresSafeArea()
+                    .animation(.easeInOut(duration: 0.2), value: viewModel.isEditModeActive)
                     .onTapGesture {
                         if viewModel.isEditModeActive {
                             withAnimation(.easeInOut(duration: 0.15)) {
@@ -188,27 +222,41 @@ struct MindMapView: View {
                 editMenuAnchor
                     .frame(width: geometry.size.width, height: geometry.size.height, alignment: .topLeading)
 
-                // Info Overlay (Fixed Position)
+                // Info Overlay (Fixed Position) — a solid, distinct badge while editing so the
+                // mode change reads clearly at a glance, not just via the toolbar button.
                 VStack {
                     HStack(spacing: 8) {
-                        Image(systemName: "info.circle.fill")
-                            .foregroundStyle(Theme.purple)
-                        Text(viewModel.isEditModeActive ? "Hold any node to show the edit toolbar" : "Hold any node to view its summary")
+                        Image(systemName: viewModel.isEditModeActive ? "pencil.circle.fill" : "info.circle.fill")
+                            .foregroundStyle(viewModel.isEditModeActive ? .white : Theme.purple)
+                        Text(viewModel.isEditModeActive ? "Editing — hold any node for options" : "Hold any node to view its summary")
                             .font(.system(.footnote, design: .rounded).weight(.medium))
-                            .foregroundStyle(Theme.textPrimary)
+                            .foregroundStyle(viewModel.isEditModeActive ? .white : Theme.textPrimary)
                             .contentTransition(.numericText())
                             .animation(.easeInOut, value: viewModel.isEditModeActive)
                     }
                     .padding(.vertical, 10)
                     .padding(.horizontal, 16)
-                    .background(.ultraThinMaterial, in: Capsule())
+                    .background(
+                        Capsule().fill(viewModel.isEditModeActive ? AnyShapeStyle(Theme.purple) : AnyShapeStyle(.ultraThinMaterial))
+                    )
                     .shadow(color: Theme.black.opacity(0.05), radius: 10, y: 4)
                     .padding(.top, 110)
                     .opacity(poppedNode == nil ? 1 : 0)
                     .animation(.easeInOut(duration: 0.2), value: poppedNode)
+                    .animation(.easeInOut(duration: 0.2), value: viewModel.isEditModeActive)
                     .allowsHitTesting(false)
-                    
+
                     Spacer()
+                }
+
+                // Edit-mode frame — a thin border around the whole canvas so the active
+                // editing state stays visible even when scrolled away from the toolbar/badge.
+                if viewModel.isEditModeActive {
+                    Rectangle()
+                        .stroke(Theme.purple, lineWidth: 3)
+                        .ignoresSafeArea()
+                        .allowsHitTesting(false)
+                        .transition(.opacity)
                 }
                 
                 // Chat FAB (Fixed Position)
@@ -259,19 +307,42 @@ struct MindMapView: View {
             }
             
             ToolbarItem(placement: .navigationBarTrailing) {
-                Button {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        viewModel.isEditModeActive.toggle()
-                        if !viewModel.isEditModeActive {
+                if viewModel.isEditModeActive {
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            viewModel.isEditModeActive = false
                             viewModel.selectedNodeID = nil
                             viewModel.editingNodeID = nil
                             viewModel.showFloatingMenuForNodeID = nil
                         }
+                    } label: {
+                        Text("Done")
+                            .font(.system(.body, design: .rounded).weight(.semibold))
+                            .foregroundStyle(Theme.purple)
                     }
-                } label: {
-                    Text(viewModel.isEditModeActive ? "Done" : "Edit")
-                        .font(.system(.body, design: .rounded).weight(.semibold))
-                        .foregroundStyle(Theme.purple)
+                } else {
+                    Menu {
+                        Button {
+                            exportAndShare()
+                        } label: {
+                            Label("Share Mindmap", systemImage: "square.and.arrow.up")
+                        }
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                viewModel.isEditModeActive = true
+                            }
+                        } label: {
+                            Label("Edit Mindmap", systemImage: "pencil")
+                        }
+                    } label: {
+                        if isExportingImage {
+                            ProgressView()
+                        } else {
+                            Image(systemName: "ellipsis")
+                                .foregroundStyle(Theme.purple)
+                        }
+                    }
+                    .disabled(isExportingImage)
                 }
             }
         }
@@ -288,6 +359,11 @@ struct MindMapView: View {
                 IconPickerView(currentSymbol: node.symbol) { symbol in
                     viewModel.setSymbol(nodeID: nodeID, symbol: symbol)
                 }
+            }
+        }
+        .sheet(isPresented: $showShareSheet) {
+            if let exportedImage {
+                ShareSheet(activityItems: [exportedImage])
             }
         }
     }
