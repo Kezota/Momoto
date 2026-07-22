@@ -3,11 +3,6 @@
 //  MomotoMindmap
 //
 
-//
-//  HomeView.swift
-//  MomotoMindmap
-//
-
 import SwiftUI
 import Combine
 
