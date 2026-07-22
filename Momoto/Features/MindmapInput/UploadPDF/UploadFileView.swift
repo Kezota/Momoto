@@ -2,26 +2,27 @@
 //  UploadFileView.swift
 //  MomotoMindmap
 //
-//  Created by Kezia Meilany Tandapai on 01/05/26.
-//
 
 import SwiftUI
 import UniformTypeIdentifiers
 import UIKit
 
 struct UploadFileView: View {
-    
     @StateObject private var viewModel = UploadFileViewModel()
     @State private var showImporter = false
     @State private var hasAutoPrompted = false
-    
+    @Environment(\.dismiss) private var dismiss
+
     var onTextExtracted: (String) -> Void
-    
+
     var body: some View {
         ZStack {
             Theme.background.ignoresSafeArea()
-            
-            VStack(spacing: 24) {
+
+            VStack(alignment: .leading, spacing: 20) {
+                backButton
+                    .padding(.top, 12)
+
                 if viewModel.extractedText.isEmpty {
                     initialState
                 } else {
@@ -31,8 +32,7 @@ struct UploadFileView: View {
             .padding(.horizontal, 20)
             .padding(.bottom, 24)
         }
-        .navigationTitle("Upload a PDF")
-        .navigationBarTitleDisplayMode(.large)
+        .navigationBarHidden(true)
         .onAppear {
             if !hasAutoPrompted {
                 hasAutoPrompted = true
@@ -49,28 +49,50 @@ struct UploadFileView: View {
         }
     }
     
+    private var backButton: some View {
+        Button {
+            dismiss()
+        } label: {
+            Image(systemName: "chevron.left")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(Theme.textPrimary)
+                .frame(width: 40, height: 40)
+                .background(Color.black.opacity(0.05))
+                .clipShape(Circle())
+        }
+    }
+
     private var initialState: some View {
-        VStack(spacing: 24) {
+        VStack(spacing: 0) {
+            HStack {
+                Text("Upload a PDF")
+                    .font(.system(size: 32, weight: .bold, design: .rounded))
+                    .foregroundStyle(Theme.textPrimary)
+                Spacer()
+            }
+
             Spacer()
-            
+
             pdfArt
-            
+                .padding(.bottom, 28)
+
             Text("We'll extract the text and turn it into a mindmap.")
-                .font(.system(.subheadline, design: .rounded))
+                .font(.system(size: 14, design: .rounded))
                 .foregroundStyle(Theme.textSecondary)
-                .frame(maxWidth: .infinity, alignment: .center)
-            
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 20)
+
             if let errorMessage = viewModel.errorMessage {
                 Text(errorMessage)
                     .font(.callout)
                     .foregroundStyle(Theme.red)
                     .multilineTextAlignment(.center)
-                    .padding(.horizontal)
+                    .padding(.top, 12)
                     .transition(.opacity)
             }
-            
+
             Spacer()
-            
+
             Button {
                 showImporter = true
             } label: {
@@ -79,18 +101,17 @@ struct UploadFileView: View {
                     Text(viewModel.isWorking ? "Reading..." : "Choose PDF")
                 }
             }
-            .buttonStyle(PrimaryButtonStyle(color: Theme.yellow, isFullWidth: true))
+            .buttonStyle(PrimaryButtonStyle(color: Theme.purple, isFullWidth: true))
             .disabled(viewModel.isWorking)
         }
     }
-    
+
     private var previewState: some View {
         VStack(alignment: .leading, spacing: 20) {
             Text("Preview of extracted text:")
-                .font(.system(.subheadline, design: .rounded))
+                .font(.system(size: 14, design: .rounded))
                 .foregroundStyle(Theme.textSecondary)
-                .padding(.top, 12)
-            
+
             TextEditor(text: $viewModel.extractedText)
                 .font(.system(.body, design: .rounded))
                 .foregroundStyle(Theme.textPrimary)
@@ -100,38 +121,37 @@ struct UploadFileView: View {
                 .background(Theme.white)
                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(Theme.stroke, lineWidth: 1))
-            
+
             HStack(spacing: 12) {
                 Button("Re-upload") {
                     viewModel.clear()
                     showImporter = true
                 }
-                .buttonStyle(SecondaryButtonStyle(color: Theme.yellow))
-                
+                .buttonStyle(SecondaryButtonStyle(color: Theme.purple))
+
                 Button(action: {
                     onTextExtracted(viewModel.extractedText)
                 }) {
                     Text("Make Mindmap")
                 }
-                .buttonStyle(PrimaryButtonStyle(color: Theme.yellow, isFullWidth: true))
+                .buttonStyle(PrimaryButtonStyle(color: Theme.purple, isFullWidth: true))
             }
         }
     }
-    
+
     private var pdfArt: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(Theme.yellow.opacity(0.15))
-                .frame(width: 180, height: 220)
-                .shadow(color: Theme.yellow.opacity(0.25), radius: 16, x: 0, y: 10)
-            
-            VStack(spacing: 8) {
+            RoundedRectangle(cornerRadius: 28, style: .continuous)
+                .fill(Theme.purple.opacity(0.12))
+                .frame(width: 180, height: 180)
+
+            VStack(spacing: 12) {
                 Image(systemName: "doc.fill")
-                    .font(.system(size: 90, weight: .regular))
-                    .foregroundStyle(Theme.yellow)
+                    .font(.system(size: 64, weight: .regular))
+                    .foregroundStyle(Theme.purple)
                 Text("PDF")
-                    .font(.system(.title3, design: .rounded).weight(.heavy))
-                    .foregroundStyle(Theme.yellow)
+                    .font(.system(size: 18, weight: .black, design: .rounded))
+                    .foregroundStyle(Theme.purple)
             }
         }
     }

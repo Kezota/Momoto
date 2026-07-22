@@ -2,51 +2,51 @@
 //  PasteTextView.swift
 //  MomotoMindmap
 //
-//  Created by Kezia Meilany Tandapai on 01/05/26.
-//
 
 import SwiftUI
 import UIKit
 
 struct PasteTextView: View {
-    
     @StateObject private var viewModel = PasteTextViewModel()
     @FocusState private var editorFocused: Bool
-    
+    @Environment(\.dismiss) private var dismiss
+
     var onSubmit: (String) -> Void
-    
+
     var body: some View {
         ZStack {
             Theme.background.ignoresSafeArea()
             
-            VStack(spacing: 8) {
-                HStack {
+            VStack(alignment: .leading, spacing: 20) {
+                // Top Bar / Back Button
+                backButton
+                    .padding(.top, 12)
+                
+                // Title & Subtitle
+                VStack(alignment: .leading, spacing: 6) {
                     Text("Paste your text")
-                        .font(.system(.largeTitle, design: .rounded).weight(.bold))
+                        .font(.system(size: 32, weight: .bold, design: .rounded))
                         .foregroundStyle(Theme.textPrimary)
-                    Spacer()
+                    
+                    Text("We'll summarise it into an interactive mindmap.")
+                        .font(.system(size: 14, design: .rounded))
+                        .foregroundStyle(Theme.textSecondary)
                 }
-                .padding(.top, 12)
                 
-                Text("We'll summarise it into an interactive mindmap.")
-                    .font(.system(.subheadline, design: .rounded))
-                    .foregroundStyle(Theme.textSecondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.bottom, 16)
-                
+                // Editor Card Container
                 editorCard
                 
                 Spacer(minLength: 0)
                 
+                // Bottom Primary Button
                 Button("Generate Mindmap", action: submit)
                     .buttonStyle(PrimaryButtonStyle(color: Theme.purple, isFullWidth: true))
                     .disabled(viewModel.isSubmitDisabled)
             }
             .padding(.horizontal, 20)
-            .padding(.top, 12)
             .padding(.bottom, 24)
         }
-        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarHidden(true)
         .toolbar {
             ToolbarItem(placement: .keyboard) { Spacer() }
             ToolbarItem(placement: .keyboard) {
@@ -55,6 +55,19 @@ struct PasteTextView: View {
         }
     }
     
+    private var backButton: some View {
+        Button {
+            dismiss()
+        } label: {
+            Image(systemName: "chevron.left")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(Theme.textPrimary)
+                .frame(width: 40, height: 40)
+                .background(Color.black.opacity(0.05))
+                .clipShape(Circle())
+        }
+    }
+
     private var editorCard: some View {
         ZStack(alignment: .topLeading) {
             RoundedRectangle(cornerRadius: 22, style: .continuous)
@@ -63,27 +76,27 @@ struct PasteTextView: View {
                     RoundedRectangle(cornerRadius: 22, style: .continuous)
                         .stroke(Theme.stroke, lineWidth: 1)
                 )
-                .shadow(color: Theme.black.opacity(0.04), radius: 12, x: 0, y: 6)
-            
+                .shadow(color: Theme.black.opacity(0.03), radius: 8, x: 0, y: 4)
+
             TextEditor(text: $viewModel.text)
                 .font(.system(.body, design: .rounded))
                 .foregroundStyle(Theme.textPrimary)
-                .padding(14)
+                .padding(16)
                 .scrollContentBackground(.hidden)
                 .focused($editorFocused)
-            
+
             if viewModel.text.isEmpty {
-                Text("Paste a paragraph or two here...")
+                Text("Paste a paragraph or two here..")
                     .font(.system(.body, design: .rounded))
                     .foregroundStyle(Theme.textSecondary.opacity(0.6))
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 22)
+                    .padding(.horizontal, 22)
+                    .padding(.vertical, 24)
                     .allowsHitTesting(false)
             }
         }
-        .frame(minHeight: 320)
+        .frame(maxHeight: .infinity)
     }
-    
+
     private func submit() {
         editorFocused = false
         viewModel.submit(onSubmit: onSubmit)
