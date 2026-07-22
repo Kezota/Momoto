@@ -39,6 +39,10 @@ struct NodePosition {
     let depth: Int
     let origin: CGPoint
     let parentID: UUID?
+    /// Index of the top-level branch (direct child of root) this node descends from. Nil for the root itself.
+    let branchIndex: Int?
+    /// Rendered height of this node — varies with title length instead of a fixed constant.
+    let height: CGFloat
 }
 
 struct LayoutResult {
