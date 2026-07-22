@@ -11,6 +11,7 @@ import Vision
 @MainActor
 final class CameraViewModel: ObservableObject {
     enum Phase {
+        case scanning
         case textSelection
         case capturedText
     }
@@ -29,15 +30,17 @@ final class CameraViewModel: ObservableObject {
     /// 0.6 means 60% middle visible, 20% blacked out top + 20% bottom. Tune freely.
     let visibleHeightRatio: CGFloat = 0.6
     
+    // Must stay `var`: EditPreviewView binds through `$viewModel.ocr.scannedText`,
+    // which requires a writable key path.
     var ocr = OCRViewModel()
-    
-    @Published var phase: Phase?
+
+    @Published var phase: Phase = .scanning
     @Published var captureRequestID = 0
     @Published var visibleTextSections: [TextSection] = []
     @Published var capturedTextSections: [TextSection] = []
     @Published var capturedImage: UIImage?
     @Published var capturedPreviewSize: CGSize = .zero
-    @Published var cropRect: CGRect = .zero
+    @Published var cropQuad: CropQuad = .zero
     
     private var cancellables = Set<AnyCancellable>()
     
@@ -60,7 +63,7 @@ final class CameraViewModel: ObservableObject {
     }
     
     var sectionsInCropCount: Int {
-        capturedTextSections.filter { cropRect.intersects($0.bounds) }.count
+        capturedTextSections.filter { cropQuad.intersects($0.bounds) }.count
     }
     
     func updateRecognizedTextSections(_ sections: [TextSection]) {
@@ -110,15 +113,15 @@ final class CameraViewModel: ObservableObject {
                 capturedPreviewSize = croppedImage.size
                 capturedTextSections = detectedSections
                 
-                // Default crop rectangle inside the now-smaller preview.
+                // Default crop quad inside the now-smaller preview.
                 let insetX = croppedImage.size.width * 0.04
                 let insetY = croppedImage.size.height * 0.06
-                cropRect = CGRect(
+                cropQuad = CropQuad(rect: CGRect(
                     x: insetX,
                     y: insetY,
                     width: croppedImage.size.width - insetX * 2,
                     height: croppedImage.size.height - insetY * 2
-                )
+                ))
                 
                 ocr.isProcessing = false
                 phase = .textSelection
@@ -131,7 +134,7 @@ final class CameraViewModel: ObservableObject {
     
     func useSelectedSections() {
         let selectedText = capturedTextSections
-            .filter { cropRect.intersects($0.bounds) }
+            .filter { cropQuad.intersects($0.bounds) }
             .sorted { $0.bounds.minY < $1.bounds.minY }
             .map(\.text)
             .joined(separator: "\n")
@@ -152,17 +155,13 @@ final class CameraViewModel: ObservableObject {
     }
     
     func retake() {
-        clear()
-        phase = nil
+        ocr.scannedText = ""
+        ocr.errorMessage = nil
+        phase = .scanning
         capturedTextSections = []
         capturedImage = nil
         capturedPreviewSize = .zero
-        cropRect = .zero
-    }
-    
-    func clear() {
-        ocr.scannedText = ""
-        ocr.errorMessage = nil
+        cropQuad = .zero
     }
     
     func handleGenerate(onTextCaptured: (String) -> Void) {

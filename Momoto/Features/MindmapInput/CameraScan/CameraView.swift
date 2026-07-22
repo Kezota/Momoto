@@ -19,15 +19,18 @@ struct CameraView: View {
             
             if viewModel.ocr.isProcessing {
                 processingView
-            } else if viewModel.phase == .textSelection {
-                CapturedTextSelectionView(viewModel: viewModel)
-            } else if viewModel.phase == .capturedText {
-                EditPreviewView(viewModel: viewModel, onTextCaptured: onTextCaptured)
             } else {
-                scannerLayer
-                blackBars
-                topOverlay
-                bottomOverlay
+                switch viewModel.phase {
+                case .scanning:
+                    scannerLayer
+                    blackBars
+                    topOverlay
+                    bottomOverlay
+                case .textSelection:
+                    CapturedTextSelectionView(viewModel: viewModel)
+                case .capturedText:
+                    EditPreviewView(viewModel: viewModel, onTextCaptured: onTextCaptured)
+                }
             }
         }
         .navigationBarHidden(true)
