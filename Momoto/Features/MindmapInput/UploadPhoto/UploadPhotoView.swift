@@ -7,18 +7,21 @@ import SwiftUI
 import PhotosUI
 
 struct UploadPhotoView: View {
-    
     @StateObject private var viewModel = UploadPhotoViewModel()
     @State private var hasAutoPrompted = false
     @State private var showPicker = false
-    
+    @Environment(\.dismiss) private var dismiss
+
     var onTextExtracted: (String) -> Void
-    
+
     var body: some View {
         ZStack {
             Theme.background.ignoresSafeArea()
-            
-            VStack(spacing: 24) {
+
+            VStack(alignment: .leading, spacing: 20) {
+                backButton
+                    .padding(.top, 12)
+
                 if viewModel.extractedText.isEmpty {
                     initialState
                 } else {
@@ -28,8 +31,7 @@ struct UploadPhotoView: View {
             .padding(.horizontal, 20)
             .padding(.bottom, 24)
         }
-        .navigationTitle("Use Photo")
-        .navigationBarTitleDisplayMode(.large)
+        .navigationBarHidden(true)
         .onAppear {
             if !hasAutoPrompted {
                 hasAutoPrompted = true
@@ -40,29 +42,51 @@ struct UploadPhotoView: View {
         }
         .photosPicker(isPresented: $showPicker, selection: $viewModel.selectedItem, matching: .images, photoLibrary: .shared())
     }
-    
+
+    private var backButton: some View {
+        Button {
+            dismiss()
+        } label: {
+            Image(systemName: "chevron.left")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(Theme.textPrimary)
+                .frame(width: 40, height: 40)
+                .background(Color.black.opacity(0.05))
+                .clipShape(Circle())
+        }
+    }
+
     private var initialState: some View {
-        VStack(spacing: 24) {
+        VStack(spacing: 0) {
+            HStack {
+                Text("Use Photo")
+                    .font(.system(size: 32, weight: .bold, design: .rounded))
+                    .foregroundStyle(Theme.textPrimary)
+                Spacer()
+            }
+
             Spacer()
-            
+
             photoArt
-            
+                .padding(.bottom, 28)
+
             Text("We'll extract the text and turn it into a mindmap.")
-                .font(.system(.subheadline, design: .rounded))
+                .font(.system(size: 14, design: .rounded))
                 .foregroundStyle(Theme.textSecondary)
-                .frame(maxWidth: .infinity, alignment: .center)
-            
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 20)
+
             if let errorMessage = viewModel.errorMessage {
                 Text(errorMessage)
                     .font(.callout)
                     .foregroundStyle(Theme.red)
                     .multilineTextAlignment(.center)
-                    .padding(.horizontal)
+                    .padding(.top, 12)
                     .transition(.opacity)
             }
-            
+
             Spacer()
-            
+
             Button {
                 showPicker = true
             } label: {
@@ -71,18 +95,17 @@ struct UploadPhotoView: View {
                     Text(viewModel.isWorking ? "Reading..." : "Choose Photo")
                 }
             }
-            .buttonStyle(PrimaryButtonStyle(color: Theme.cardHistory, isFullWidth: true))
+            .buttonStyle(PrimaryButtonStyle(color: Theme.purple, isFullWidth: true))
             .disabled(viewModel.isWorking)
         }
     }
-    
+
     private var previewState: some View {
         VStack(alignment: .leading, spacing: 20) {
             Text("Preview of extracted text:")
-                .font(.system(.subheadline, design: .rounded))
+                .font(.system(size: 14, design: .rounded))
                 .foregroundStyle(Theme.textSecondary)
-                .padding(.top, 12)
-            
+
             TextEditor(text: $viewModel.extractedText)
                 .font(.system(.body, design: .rounded))
                 .foregroundStyle(Theme.textPrimary)
@@ -92,38 +115,37 @@ struct UploadPhotoView: View {
                 .background(Theme.white)
                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(Theme.stroke, lineWidth: 1))
-            
+
             HStack(spacing: 12) {
                 Button("Re-upload") {
                     viewModel.clear()
                     showPicker = true
                 }
-                .buttonStyle(SecondaryButtonStyle(color: Theme.cardHistory))
-                
+                .buttonStyle(SecondaryButtonStyle(color: Theme.purple))
+
                 Button(action: {
                     onTextExtracted(viewModel.extractedText)
                 }) {
                     Text("Make Mindmap")
                 }
-                .buttonStyle(PrimaryButtonStyle(color: Theme.cardHistory, isFullWidth: true))
+                .buttonStyle(PrimaryButtonStyle(color: Theme.purple, isFullWidth: true))
             }
         }
     }
-    
+
     private var photoArt: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(Theme.cardHistory.opacity(0.15))
-                .frame(width: 180, height: 220)
-                .shadow(color: Theme.cardHistory.opacity(0.25), radius: 16, x: 0, y: 10)
-            
-            VStack(spacing: 8) {
+            RoundedRectangle(cornerRadius: 28, style: .continuous)
+                .fill(Theme.purple.opacity(0.12))
+                .frame(width: 180, height: 180)
+
+            VStack(spacing: 12) {
                 Image(systemName: "photo.fill")
-                    .font(.system(size: 90, weight: .regular))
-                    .foregroundStyle(Theme.cardHistory)
+                    .font(.system(size: 64, weight: .regular))
+                    .foregroundStyle(Theme.purple)
                 Text("PHOTO")
-                    .font(.system(.title3, design: .rounded).weight(.heavy))
-                    .foregroundStyle(Theme.cardHistory)
+                    .font(.system(size: 18, weight: .black, design: .rounded))
+                    .foregroundStyle(Theme.purple)
             }
         }
     }
