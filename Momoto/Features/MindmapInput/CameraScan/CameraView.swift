@@ -18,10 +18,6 @@ struct CameraView: View {
             
             if viewModel.ocr.isProcessing {
                 processingView
-            } else if viewModel.phase == .textSelection {
-                CapturedTextSelectionView(viewModel: viewModel)
-            } else if viewModel.phase == .capturedText {
-                EditPreviewView(viewModel: viewModel, onTextCaptured: onTextCaptured)
             } else {
                 scannerLayer
                 blackBars

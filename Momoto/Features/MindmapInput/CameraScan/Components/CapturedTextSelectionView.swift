@@ -59,8 +59,7 @@ struct CapturedTextSelectionView: View {
                     in: geometry.size,
                     aspectRatio: viewModel.capturedPreviewSize.width / viewModel.capturedPreviewSize.height
                 )
-                let cropFrame = scaledRect(for: viewModel.cropRect, imageFrame: imageFrame)
-                
+
                 ZStack(alignment: .topLeading) {
                     Image(uiImage: image)
                         .resizable()
@@ -68,9 +67,9 @@ struct CapturedTextSelectionView: View {
                         .frame(width: imageFrame.width, height: imageFrame.height)
                         .clipped()
                         .position(x: imageFrame.midX, y: imageFrame.midY)
-                    
-                    // Blue highlights only on sections that intersect the crop rect
-                    ForEach(viewModel.capturedTextSections.filter { viewModel.cropRect.intersects($0.bounds) }) { section in
+
+                    // Blue highlights only on sections that intersect the crop quad
+                    ForEach(viewModel.capturedTextSections.filter { viewModel.cropQuad.intersects($0.bounds) }) { section in
                         TextHighlightShape(points: scaledHighlightPoints(for: section, imageFrame: imageFrame))
                             .fill(Color.blue.opacity(0.35))
                             .overlay(
@@ -84,13 +83,13 @@ struct CapturedTextSelectionView: View {
                             }
                             .allowsHitTesting(false)
                     }
-                    
-                    // Draggable / resizable crop rectangle
-                    CropRectangleView(
-                        rect: Binding(
-                            get: { cropFrame },
-                            set: { newRect in
-                                viewModel.cropRect = unscaledRect(from: newRect, imageFrame: imageFrame)
+
+                    // Draggable free-form quadrilateral crop
+                    CropQuadView(
+                        quad: Binding(
+                            get: { scaledQuad(for: viewModel.cropQuad, imageFrame: imageFrame) },
+                            set: { newQuad in
+                                viewModel.cropQuad = unscaledQuad(from: newQuad, imageFrame: imageFrame)
                             }
                         ),
                         bounds: imageFrame
@@ -123,16 +122,12 @@ struct CapturedTextSelectionView: View {
         )
     }
     
-    private func scaledRect(for bounds: CGRect, imageFrame: CGRect) -> CGRect {
-        let previewSize = viewModel.capturedPreviewSize
-        let scaleX = imageFrame.width / max(previewSize.width, 1)
-        let scaleY = imageFrame.height / max(previewSize.height, 1)
-        
-        return CGRect(
-            x: imageFrame.minX + bounds.minX * scaleX,
-            y: imageFrame.minY + bounds.minY * scaleY,
-            width: bounds.width * scaleX,
-            height: bounds.height * scaleY
+    private func scaledQuad(for quad: CropQuad, imageFrame: CGRect) -> CropQuad {
+        CropQuad(
+            topLeft: scaledPoint(quad.topLeft, imageFrame: imageFrame),
+            topRight: scaledPoint(quad.topRight, imageFrame: imageFrame),
+            bottomRight: scaledPoint(quad.bottomRight, imageFrame: imageFrame),
+            bottomLeft: scaledPoint(quad.bottomLeft, imageFrame: imageFrame)
         )
     }
     
@@ -156,16 +151,23 @@ struct CapturedTextSelectionView: View {
         )
     }
     
-    private func unscaledRect(from rect: CGRect, imageFrame: CGRect) -> CGRect {
+    private func unscaledQuad(from quad: CropQuad, imageFrame: CGRect) -> CropQuad {
+        CropQuad(
+            topLeft: unscaledPoint(quad.topLeft, imageFrame: imageFrame),
+            topRight: unscaledPoint(quad.topRight, imageFrame: imageFrame),
+            bottomRight: unscaledPoint(quad.bottomRight, imageFrame: imageFrame),
+            bottomLeft: unscaledPoint(quad.bottomLeft, imageFrame: imageFrame)
+        )
+    }
+
+    private func unscaledPoint(_ point: CGPoint, imageFrame: CGRect) -> CGPoint {
         let previewSize = viewModel.capturedPreviewSize
         let scaleX = previewSize.width / max(imageFrame.width, 1)
         let scaleY = previewSize.height / max(imageFrame.height, 1)
-        
-        return CGRect(
-            x: (rect.minX - imageFrame.minX) * scaleX,
-            y: (rect.minY - imageFrame.minY) * scaleY,
-            width: rect.width * scaleX,
-            height: rect.height * scaleY
+
+        return CGPoint(
+            x: (point.x - imageFrame.minX) * scaleX,
+            y: (point.y - imageFrame.minY) * scaleY
         )
     }
 }
@@ -186,83 +188,97 @@ private struct TextHighlightShape: Shape {
     }
 }
 
-private struct CropRectangleView: View {
-    @Binding var rect: CGRect
+private struct CropQuadView: View {
+    @Binding var quad: CropQuad
     let bounds: CGRect
-    
-    @State private var startRect: CGRect? = nil
-    
-    private enum Corner { case topLeft, topRight, bottomLeft, bottomRight }
-    
+
+    @State private var startQuad: CropQuad? = nil
+
     var body: some View {
         ZStack {
-            // Body of crop rectangle: white outline, draggable to move.
-            Rectangle()
+            // Quad outline: draggable to move the whole selection.
+            CropQuadShape(quad: quad)
                 .stroke(Color.white, lineWidth: 2)
-                .background(Color.white.opacity(0.001)) // makes whole rect hit-testable
-                .frame(width: rect.width, height: rect.height)
-                .position(x: rect.midX, y: rect.midY)
+                .background(
+                    CropQuadShape(quad: quad)
+                        .fill(Color.white.opacity(0.001)) // makes the interior hit-testable
+                )
                 .gesture(moveGesture)
-            
-            // Corner handles
-            handle(at: CGPoint(x: rect.minX, y: rect.minY), corner: .topLeft)
-            handle(at: CGPoint(x: rect.maxX, y: rect.minY), corner: .topRight)
-            handle(at: CGPoint(x: rect.minX, y: rect.maxY), corner: .bottomLeft)
-            handle(at: CGPoint(x: rect.maxX, y: rect.maxY), corner: .bottomRight)
+
+            // Independent corner handles
+            ForEach(Array(CropQuad.Corner.allCases.enumerated()), id: \.offset) { _, corner in
+                handle(for: corner)
+            }
         }
     }
-    
-    private func handle(at position: CGPoint, corner: Corner) -> some View {
-        Circle()
+
+    private func handle(for corner: CropQuad.Corner) -> some View {
+        let position = quad[corner]
+        let visualSize: CGFloat = 32
+        let touchSize: CGFloat = 48
+
+        return Circle()
             .fill(Color.white)
-            .frame(width: 22, height: 22)
+            .frame(width: visualSize, height: visualSize)
             .shadow(color: .black.opacity(0.18), radius: 3, y: 1)
+            .frame(width: touchSize, height: touchSize) // larger invisible touch target
+            .contentShape(Circle())
             .position(x: position.x, y: position.y)
-            .gesture(resizeGesture(corner: corner))
+            .gesture(cornerGesture(corner: corner))
     }
-    
+
     private var moveGesture: some Gesture {
         DragGesture()
             .onChanged { value in
-                if startRect == nil { startRect = rect }
-                guard let start = startRect else { return }
-                
-                let newX = max(bounds.minX, min(bounds.maxX - start.width, start.minX + value.translation.width))
-                let newY = max(bounds.minY, min(bounds.maxY - start.height, start.minY + value.translation.height))
-                rect = CGRect(x: newX, y: newY, width: start.width, height: start.height)
+                if startQuad == nil { startQuad = quad }
+                guard let start = startQuad else { return }
+
+                let box = start.boundingRect
+                // Clamp the translation so the whole quad stays inside the image.
+                let dx = min(
+                    max(value.translation.width, bounds.minX - box.minX),
+                    bounds.maxX - box.maxX
+                )
+                let dy = min(
+                    max(value.translation.height, bounds.minY - box.minY),
+                    bounds.maxY - box.maxY
+                )
+                quad = start.translated(byX: dx, y: dy)
             }
-            .onEnded { _ in startRect = nil }
+            .onEnded { _ in startQuad = nil }
     }
-    
-    private func resizeGesture(corner: Corner) -> some Gesture {
+
+    private func cornerGesture(corner: CropQuad.Corner) -> some Gesture {
         DragGesture()
             .onChanged { value in
-                if startRect == nil { startRect = rect }
-                guard let start = startRect else { return }
-                
-                let minSize: CGFloat = 60
-                var minX = start.minX
-                var minY = start.minY
-                var maxX = start.maxX
-                var maxY = start.maxY
-                
-                switch corner {
-                case .topLeft:
-                    minX = max(bounds.minX, min(maxX - minSize, start.minX + value.translation.width))
-                    minY = max(bounds.minY, min(maxY - minSize, start.minY + value.translation.height))
-                case .topRight:
-                    maxX = max(minX + minSize, min(bounds.maxX, start.maxX + value.translation.width))
-                    minY = max(bounds.minY, min(maxY - minSize, start.minY + value.translation.height))
-                case .bottomLeft:
-                    minX = max(bounds.minX, min(maxX - minSize, start.minX + value.translation.width))
-                    maxY = max(minY + minSize, min(bounds.maxY, start.maxY + value.translation.height))
-                case .bottomRight:
-                    maxX = max(minX + minSize, min(bounds.maxX, start.maxX + value.translation.width))
-                    maxY = max(minY + minSize, min(bounds.maxY, start.maxY + value.translation.height))
-                }
-                
-                rect = CGRect(x: minX, y: minY, width: maxX - minX, height: maxY - minY)
+                if startQuad == nil { startQuad = quad }
+                guard let start = startQuad else { return }
+
+                let origin = start[corner]
+                var moved = start
+                moved[corner] = CGPoint(
+                    x: min(max(origin.x + value.translation.width, bounds.minX), bounds.maxX),
+                    y: min(max(origin.y + value.translation.height, bounds.minY), bounds.maxY)
+                )
+                quad = moved
             }
-            .onEnded { _ in startRect = nil }
+            .onEnded { _ in startQuad = nil }
+    }
+}
+
+private struct CropQuadShape: Shape {
+    let quad: CropQuad
+
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        let pts = quad.points
+        guard let first = pts.first else { return path }
+
+        path.move(to: first)
+        for point in pts.dropFirst() {
+            path.addLine(to: point)
+        }
+        path.closeSubpath()
+        return path
     }
 }
