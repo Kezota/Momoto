@@ -13,22 +13,13 @@ struct EditPreviewView: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Button {
-                viewModel.retake()
-            } label: {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(.black)
-                    .frame(width: 44, height: 44)
-                    .background(Circle().fill(Color.white))
-                    .shadow(color: .black.opacity(0.08), radius: 6, y: 2)
-            }
-            .padding(.top, 16)
-            
-            Text("Edit Preview")
-                .font(.system(size: 30, weight: .bold, design: .rounded))
-                .foregroundStyle(Theme.textPrimary)
-            
+            // Navigation chrome (title + Rescan) is owned by CameraView's toolbar.
+            Text("Check the text and fix anything that looks wrong.")
+                .font(.system(.subheadline, design: .rounded))
+                .foregroundStyle(Theme.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 8)
+
             TextEditor(text: $viewModel.ocr.scannedText)
                 .font(.system(.body, design: .rounded))
                 .foregroundStyle(Theme.textPrimary)
@@ -43,15 +34,16 @@ struct EditPreviewView: View {
                 )
             
             HStack(spacing: 12) {
-                Button("Re-scan") {
+                Button("Rescan") {
                     viewModel.retake()
                 }
                 .buttonStyle(SecondaryButtonStyle(color: Theme.purple))
-                
+
+                // Advances to the Personalize step rather than generating straight away.
                 Button(action: {
                     viewModel.handleGenerate(onTextCaptured: onTextCaptured)
                 }) {
-                    Text("Generate")
+                    Text("Continue")
                 }
                 .buttonStyle(PrimaryButtonStyle(color: Theme.purple, isFullWidth: true))
                 .disabled(viewModel.generateDisabled)

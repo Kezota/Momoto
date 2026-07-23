@@ -11,7 +11,6 @@ struct UploadFileView: View {
     @StateObject private var viewModel = UploadFileViewModel()
     @State private var showImporter = false
     @State private var hasAutoPrompted = false
-    @Environment(\.dismiss) private var dismiss
 
     var onTextExtracted: (String) -> Void
 
@@ -20,9 +19,6 @@ struct UploadFileView: View {
             Theme.background.ignoresSafeArea()
 
             VStack(alignment: .leading, spacing: 20) {
-                backButton
-                    .padding(.top, 12)
-
                 if viewModel.extractedText.isEmpty {
                     initialState
                 } else {
@@ -30,16 +26,18 @@ struct UploadFileView: View {
                 }
             }
             .padding(.horizontal, 20)
+            .padding(.top, 8)
             .padding(.bottom, 24)
         }
-        .navigationBarHidden(true)
-        .onAppear {
-            if !hasAutoPrompted {
-                hasAutoPrompted = true
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                    showImporter = true
-                }
-            }
+        .navigationTitle("Upload PDF")
+        .navigationBarTitleDisplayMode(.large)
+        // `.task` is tied to the view's lifetime, so the prompt is cancelled if the user leaves
+        // before it fires. The short wait lets the push animation settle before presenting.
+        .task {
+            guard !hasAutoPrompted else { return }
+            hasAutoPrompted = true
+            try? await Task.sleep(for: .milliseconds(350))
+            showImporter = true
         }
         .fileImporter(isPresented: $showImporter, allowedContentTypes: [.pdf]) { result in
             switch result {
@@ -49,35 +47,15 @@ struct UploadFileView: View {
         }
     }
     
-    private var backButton: some View {
-        Button {
-            dismiss()
-        } label: {
-            Image(systemName: "chevron.left")
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(Theme.textPrimary)
-                .frame(width: 40, height: 40)
-                .background(Color.black.opacity(0.05))
-                .clipShape(Circle())
-        }
-    }
-
     private var initialState: some View {
         VStack(spacing: 0) {
-            HStack {
-                Text("Upload a PDF")
-                    .font(.system(size: 32, weight: .bold, design: .rounded))
-                    .foregroundStyle(Theme.textPrimary)
-                Spacer()
-            }
-
             Spacer()
 
             pdfArt
                 .padding(.bottom, 28)
 
-            Text("We'll extract the text and turn it into a mindmap.")
-                .font(.system(size: 14, design: .rounded))
+            Text("We'll pull the text from your PDF.")
+                .font(.system(.subheadline, design: .rounded))
                 .foregroundStyle(Theme.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 20)
@@ -108,9 +86,10 @@ struct UploadFileView: View {
 
     private var previewState: some View {
         VStack(alignment: .leading, spacing: 20) {
-            Text("Preview of extracted text:")
-                .font(.system(size: 14, design: .rounded))
+            Text("Check the text and fix anything that looks wrong.")
+                .font(.system(.subheadline, design: .rounded))
                 .foregroundStyle(Theme.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
 
             TextEditor(text: $viewModel.extractedText)
                 .font(.system(.body, design: .rounded))
@@ -129,10 +108,11 @@ struct UploadFileView: View {
                 }
                 .buttonStyle(SecondaryButtonStyle(color: Theme.purple))
 
+                // Advances to the Personalize step rather than generating straight away.
                 Button(action: {
                     onTextExtracted(viewModel.extractedText)
                 }) {
-                    Text("Make Mindmap")
+                    Text("Continue")
                 }
                 .buttonStyle(PrimaryButtonStyle(color: Theme.purple, isFullWidth: true))
             }

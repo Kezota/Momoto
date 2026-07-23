@@ -46,6 +46,10 @@ struct HomeView: View {
     @State private var isCreateSheetPresented = false
     @State private var searchText = ""
     @State private var pendingDeletion: MindMap?
+    @State private var pendingRename: MindMap?
+    @State private var renameText = ""
+    /// Route chosen in the create sheet, pushed only after that sheet finishes dismissing.
+    @State private var pendingRoute: AppRoute?
 
     var filteredMindmaps: [MindMap] {
         var list = mindmaps
@@ -100,11 +104,22 @@ struct HomeView: View {
                     .tint(Theme.purple)
                 }
             }
-            .sheet(isPresented: $isCreateSheetPresented) {
+            // The chosen route is pushed from `onDismiss`, once the sheet is fully gone. Pushing
+            // in the same tick as the dismissal leaves UIKit mid-transition, and the destination's
+            // own modal (the PDF/photo picker) then silently fails to present.
+            .sheet(
+                isPresented: $isCreateSheetPresented,
+                onDismiss: {
+                    if let route = pendingRoute {
+                        pendingRoute = nil
+                        appState.path.append(route)
+                    }
+                }
+            ) {
                 CreateMindmapSheet(
                     onSelectOption: { route in
+                        pendingRoute = route
                         isCreateSheetPresented = false
-                        appState.path.append(route)
                     }
                 )
                 .presentationDetents([.medium, .large])
@@ -125,6 +140,17 @@ struct HomeView: View {
                 Button("Cancel", role: .cancel) { pendingDeletion = nil }
             } message: {
                 Text("This mindmap will be permanently deleted.")
+            }
+            .alert(
+                "Rename Mindmap",
+                isPresented: Binding(
+                    get: { pendingRename != nil },
+                    set: { if !$0 { pendingRename = nil } }
+                )
+            ) {
+                TextField("Name", text: $renameText)
+                Button("Save") { commitRename() }
+                Button("Cancel", role: .cancel) { pendingRename = nil }
             }
             .onAppear {
                 loadData()
@@ -223,13 +249,13 @@ struct HomeView: View {
             ContentUnavailableView(
                 "No Favorites",
                 systemImage: "star",
-                description: Text("Mark a mindmap as favorite to find it quickly here.")
+                description: Text("Favorite a mindmap to find it here.")
             )
         } else {
             ContentUnavailableView(
                 "No Mindmaps Yet",
                 systemImage: "brain",
-                description: Text("Tap + to create your first mindmap from text, a PDF, a photo, or a scan.")
+                description: Text("Tap + to create your first one.")
             )
         }
     }
@@ -247,6 +273,8 @@ struct HomeView: View {
                     searchQuery: searchText,
                     onTap: { appState.path.append(AppRoute.mindmap(item)) },
                     onToggleFavorite: { toggleFavorite(for: item) },
+                    onRename: { beginRename(item) },
+                    onDuplicate: { duplicate(item) },
                     onDelete: { pendingDeletion = item }
                 )
             }
@@ -263,6 +291,8 @@ struct HomeView: View {
                     searchQuery: searchText,
                     onTap: { appState.path.append(AppRoute.mindmap(item)) },
                     onToggleFavorite: { toggleFavorite(for: item) },
+                    onRename: { beginRename(item) },
+                    onDuplicate: { duplicate(item) },
                     onDelete: { pendingDeletion = item }
                 )
 
@@ -293,6 +323,39 @@ struct HomeView: View {
 
     private func deleteMindmap(_ mindmap: MindMap) {
         HistoryService.shared.delete(id: mindmap.id)
+        favoriteIDs.remove(mindmap.id.uuidString)
+        UserDefaults.standard.set(Array(favoriteIDs), forKey: "favorite_mindmap_ids")
+        loadData()
+    }
+
+    private func beginRename(_ mindmap: MindMap) {
+        renameText = mindmap.title
+        pendingRename = mindmap
+    }
+
+    private func commitRename() {
+        guard var mindmap = pendingRename else { return }
+        let newTitle = renameText.trimmingCharacters(in: .whitespacesAndNewlines)
+        pendingRename = nil
+        guard !newTitle.isEmpty, newTitle != mindmap.title else { return }
+
+        mindmap.title = newTitle
+        // The root node carries the title on the canvas, so keep the two in step.
+        mindmap.root.title = newTitle
+        HistoryService.shared.update(mindmap: mindmap)
+        loadData()
+    }
+
+    private func duplicate(_ mindmap: MindMap) {
+        let copy = MindMap(
+            id: UUID(),
+            title: "Copy of \(mindmap.title)",
+            root: mindmap.root.regeneratingIDs(),
+            rawText: mindmap.rawText,
+            createdAt: Date(),
+            source: mindmap.source
+        )
+        HistoryService.shared.add(mindmap: copy)
         loadData()
     }
 
@@ -303,22 +366,47 @@ struct HomeView: View {
 }
 
 // MARK: - Shared row/card menu
+
+/// The action set shown both in the ⋮ menu and in the long-press context menu, so the two can't
+/// drift apart.
+@ViewBuilder
+private func mindmapActions(
+    isFavorite: Bool,
+    onToggleFavorite: @escaping () -> Void,
+    onRename: @escaping () -> Void,
+    onDuplicate: @escaping () -> Void,
+    onDelete: @escaping () -> Void
+) -> some View {
+    Button(action: onToggleFavorite) {
+        Label(isFavorite ? "Unstar" : "Star", systemImage: isFavorite ? "star.slash" : "star")
+    }
+    Button(action: onRename) {
+        Label("Rename", systemImage: "pencil")
+    }
+    Button(action: onDuplicate) {
+        Label("Duplicate", systemImage: "doc.on.doc")
+    }
+    Button(role: .destructive, action: onDelete) {
+        Label("Delete", systemImage: "trash")
+    }
+}
+
 private struct MindmapActionsMenu: View {
     let isFavorite: Bool
     let onToggleFavorite: () -> Void
+    let onRename: () -> Void
+    let onDuplicate: () -> Void
     let onDelete: () -> Void
 
     var body: some View {
         Menu {
-            Button(action: onToggleFavorite) {
-                Label(
-                    isFavorite ? "Remove from Favorites" : "Add to Favorites",
-                    systemImage: isFavorite ? "star.slash" : "star"
-                )
-            }
-            Button(role: .destructive, action: onDelete) {
-                Label("Delete", systemImage: "trash")
-            }
+            mindmapActions(
+                isFavorite: isFavorite,
+                onToggleFavorite: onToggleFavorite,
+                onRename: onRename,
+                onDuplicate: onDuplicate,
+                onDelete: onDelete
+            )
         } label: {
             // SF Symbols ships `ellipsis` horizontally; rotating is the safe way to get the
             // vertical variant used in the design without depending on a newer symbol name.
@@ -365,6 +453,8 @@ struct MindmapGridCard: View {
     var searchQuery: String = ""
     let onTap: () -> Void
     let onToggleFavorite: () -> Void
+    let onRename: () -> Void
+    let onDuplicate: () -> Void
     let onDelete: () -> Void
 
     var body: some View {
@@ -409,6 +499,8 @@ struct MindmapGridCard: View {
                 MindmapActionsMenu(
                     isFavorite: isFavorite,
                     onToggleFavorite: onToggleFavorite,
+                    onRename: onRename,
+                    onDuplicate: onDuplicate,
                     onDelete: onDelete
                 )
             }
@@ -426,15 +518,13 @@ struct MindmapGridCard: View {
         .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .onTapGesture(perform: onTap)
         .contextMenu {
-            Button(action: onToggleFavorite) {
-                Label(
-                    isFavorite ? "Remove from Favorites" : "Add to Favorites",
-                    systemImage: isFavorite ? "star.slash" : "star"
-                )
-            }
-            Button(role: .destructive, action: onDelete) {
-                Label("Delete", systemImage: "trash")
-            }
+            mindmapActions(
+                isFavorite: isFavorite,
+                onToggleFavorite: onToggleFavorite,
+                onRename: onRename,
+                onDuplicate: onDuplicate,
+                onDelete: onDelete
+            )
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(mindmap.title), \(relativeDate(mindmap.createdAt))")
@@ -449,6 +539,8 @@ struct MindmapListRow: View {
     var searchQuery: String = ""
     let onTap: () -> Void
     let onToggleFavorite: () -> Void
+    let onRename: () -> Void
+    let onDuplicate: () -> Void
     let onDelete: () -> Void
 
     var body: some View {
@@ -494,6 +586,8 @@ struct MindmapListRow: View {
             MindmapActionsMenu(
                 isFavorite: isFavorite,
                 onToggleFavorite: onToggleFavorite,
+                onRename: onRename,
+                onDuplicate: onDuplicate,
                 onDelete: onDelete
             )
         }
@@ -501,15 +595,13 @@ struct MindmapListRow: View {
         .contentShape(Rectangle())
         .onTapGesture(perform: onTap)
         .contextMenu {
-            Button(action: onToggleFavorite) {
-                Label(
-                    isFavorite ? "Remove from Favorites" : "Add to Favorites",
-                    systemImage: isFavorite ? "star.slash" : "star"
-                )
-            }
-            Button(role: .destructive, action: onDelete) {
-                Label("Delete", systemImage: "trash")
-            }
+            mindmapActions(
+                isFavorite: isFavorite,
+                onToggleFavorite: onToggleFavorite,
+                onRename: onRename,
+                onDuplicate: onDuplicate,
+                onDelete: onDelete
+            )
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(mindmap.title), \(relativeDate(mindmap.createdAt))")

@@ -228,7 +228,7 @@ struct MindMapView: View {
                     HStack(spacing: 8) {
                         Image(systemName: viewModel.isEditModeActive ? "pencil.circle.fill" : "info.circle.fill")
                             .foregroundStyle(viewModel.isEditModeActive ? .white : Theme.purple)
-                        Text(viewModel.isEditModeActive ? "Editing — hold any node for options" : "Hold any node to view its summary")
+                        Text(viewModel.isEditModeActive ? "Editing. Hold a node for options" : "Hold a node to see its summary")
                             .font(.system(.footnote, design: .rounded).weight(.medium))
                             .foregroundStyle(viewModel.isEditModeActive ? .white : Theme.textPrimary)
                             .contentTransition(.numericText())
