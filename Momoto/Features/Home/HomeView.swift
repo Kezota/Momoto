@@ -353,7 +353,8 @@ struct HomeView: View {
             root: mindmap.root.regeneratingIDs(),
             rawText: mindmap.rawText,
             createdAt: Date(),
-            source: mindmap.source
+            source: mindmap.source,
+            language: mindmap.language
         )
         HistoryService.shared.add(mindmap: copy)
         loadData()
