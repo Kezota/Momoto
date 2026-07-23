@@ -325,21 +325,20 @@ struct MindMapView: View {
                         Button {
                             exportAndShare()
                         } label: {
-                            Label("Share Mindmap", systemImage: "square.and.arrow.up")
+                            Label("Share", systemImage: "square.and.arrow.up")
                         }
                         Button {
                             withAnimation(.easeInOut(duration: 0.2)) {
                                 viewModel.isEditModeActive = true
                             }
                         } label: {
-                            Label("Edit Mindmap", systemImage: "pencil")
+                            Label("Edit", systemImage: "pencil")
                         }
                     } label: {
                         if isExportingImage {
                             ProgressView()
                         } else {
                             Image(systemName: "ellipsis")
-                                .foregroundStyle(Theme.purple)
                         }
                     }
                     .disabled(isExportingImage)

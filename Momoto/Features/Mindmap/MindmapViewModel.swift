@@ -23,8 +23,6 @@ final class MindmapViewModel: ObservableObject {
 
     static var copiedNode: MindMapNode? = nil
 
-    private let columnSpacing: CGFloat = 60
-    private let rowSpacing: CGFloat = 20
     private let chatbotService = ChatbotService()
     
     init(mindMap: MindMap) {
@@ -311,43 +309,9 @@ final class MindmapViewModel: ObservableObject {
     // MARK: - Layout Engine
     
     func recalculateLayout() {
-        cachedLayout = buildLayout(node: mindMap.root, depth: 0, startY: 0)
-        contentSize = calculateCanvasSize(positions: cachedLayout.positions)
+        let result = MindmapLayoutEngine.layout(root: mindMap.root)
+        cachedLayout = result.layout
+        contentSize = result.contentSize
     }
-    
-    private func buildLayout(node: MindMapNode, depth: Int, startY: CGFloat, parentID: UUID? = nil, branchIndex: Int? = nil) -> LayoutResult {
-        var positions: [UUID: NodePosition] = [:]
-        let x = CGFloat(depth) * (MindmapNodeView.width + columnSpacing)
-        let ownHeight = nodeHeight(title: node.title, depth: depth)
-
-        if node.isExpanded && !node.children.isEmpty {
-            var childY = startY
-
-            for (index, child) in node.children.enumerated() {
-                // Direct children of the root each start a new branch; deeper descendants inherit it.
-                let childBranchIndex = depth == 0 ? index : branchIndex
-                let result = buildLayout(node: child, depth: depth + 1, startY: childY, parentID: node.id, branchIndex: childBranchIndex)
-                positions.merge(result.positions) { _, new in new }
-                childY += result.totalHeight + rowSpacing
-            }
-
-            // A node's own (possibly tall, wrapped) title can exceed its children's combined height.
-            let subtreeHeight = max(ownHeight, childY - startY - rowSpacing)
-            let centreY = startY + subtreeHeight / 2 - ownHeight / 2
-
-            positions[node.id] = NodePosition(id: node.id, node: node, depth: depth, origin: CGPoint(x: x, y: centreY), parentID: parentID, branchIndex: branchIndex, height: ownHeight)
-            return LayoutResult(positions: positions, totalHeight: subtreeHeight)
-        } else {
-            positions[node.id] = NodePosition(id: node.id, node: node, depth: depth, origin: CGPoint(x: x, y: startY), parentID: parentID, branchIndex: branchIndex, height: ownHeight)
-            return LayoutResult(positions: positions, totalHeight: ownHeight)
-        }
-    }
-
-    private func calculateCanvasSize(positions: [UUID: NodePosition]) -> CGSize {
-        let maxX = positions.values.map { $0.origin.x + MindmapNodeView.width }.max() ?? 0
-        let maxY = positions.values.map { $0.origin.y + $0.height }.max() ?? 0
-        return CGSize(width: maxX, height: maxY)
-    }
-    
 }
 
