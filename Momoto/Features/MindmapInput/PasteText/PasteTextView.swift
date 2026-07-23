@@ -9,7 +9,6 @@ import UIKit
 struct PasteTextView: View {
     @StateObject private var viewModel = PasteTextViewModel()
     @FocusState private var editorFocused: Bool
-    @Environment(\.dismiss) private var dismiss
 
     var onSubmit: (String) -> Void
 
@@ -18,53 +17,32 @@ struct PasteTextView: View {
             Theme.background.ignoresSafeArea()
             
             VStack(alignment: .leading, spacing: 20) {
-                // Top Bar / Back Button
-                backButton
-                    .padding(.top, 12)
-                
-                // Title & Subtitle
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Paste your text")
-                        .font(.system(size: 32, weight: .bold, design: .rounded))
-                        .foregroundStyle(Theme.textPrimary)
-                    
-                    Text("We'll summarise it into an interactive mindmap.")
-                        .font(.system(size: 14, design: .rounded))
-                        .foregroundStyle(Theme.textSecondary)
-                }
-                
+                Text("Paste or type your text. You'll pick the style next.")
+                    .font(.system(.subheadline, design: .rounded))
+                    .foregroundStyle(Theme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
                 // Editor Card Container
                 editorCard
-                
+
                 Spacer(minLength: 0)
-                
-                // Bottom Primary Button
-                Button("Generate Mindmap", action: submit)
+
+                // Advances to the Personalize step rather than generating straight away.
+                Button("Continue", action: submit)
                     .buttonStyle(PrimaryButtonStyle(color: Theme.purple, isFullWidth: true))
                     .disabled(viewModel.isSubmitDisabled)
             }
             .padding(.horizontal, 20)
+            .padding(.top, 8)
             .padding(.bottom, 24)
         }
-        .navigationBarHidden(true)
+        .navigationTitle("Paste Text")
+        .navigationBarTitleDisplayMode(.large)
         .toolbar {
             ToolbarItem(placement: .keyboard) { Spacer() }
             ToolbarItem(placement: .keyboard) {
                 Button("Done") { editorFocused = false }
             }
-        }
-    }
-    
-    private var backButton: some View {
-        Button {
-            dismiss()
-        } label: {
-            Image(systemName: "chevron.left")
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(Theme.textPrimary)
-                .frame(width: 40, height: 40)
-                .background(Color.black.opacity(0.05))
-                .clipShape(Circle())
         }
     }
 
@@ -86,7 +64,7 @@ struct PasteTextView: View {
                 .focused($editorFocused)
 
             if viewModel.text.isEmpty {
-                Text("Paste a paragraph or two here..")
+                Text("Paste a paragraph or two here…")
                     .font(.system(.body, design: .rounded))
                     .foregroundStyle(Theme.textSecondary.opacity(0.6))
                     .padding(.horizontal, 22)

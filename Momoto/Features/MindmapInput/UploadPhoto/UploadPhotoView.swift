@@ -10,7 +10,6 @@ struct UploadPhotoView: View {
     @StateObject private var viewModel = UploadPhotoViewModel()
     @State private var hasAutoPrompted = false
     @State private var showPicker = false
-    @Environment(\.dismiss) private var dismiss
 
     var onTextExtracted: (String) -> Void
 
@@ -19,9 +18,6 @@ struct UploadPhotoView: View {
             Theme.background.ignoresSafeArea()
 
             VStack(alignment: .leading, spacing: 20) {
-                backButton
-                    .padding(.top, 12)
-
                 if viewModel.extractedText.isEmpty {
                     initialState
                 } else {
@@ -29,49 +25,31 @@ struct UploadPhotoView: View {
                 }
             }
             .padding(.horizontal, 20)
+            .padding(.top, 8)
             .padding(.bottom, 24)
         }
-        .navigationBarHidden(true)
-        .onAppear {
-            if !hasAutoPrompted {
-                hasAutoPrompted = true
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                    showPicker = true
-                }
-            }
+        .navigationTitle("Use Photo")
+        .navigationBarTitleDisplayMode(.large)
+        // `.task` is tied to the view's lifetime, so the prompt is cancelled if the user leaves
+        // before it fires. The short wait lets the push animation settle before presenting.
+        .task {
+            guard !hasAutoPrompted else { return }
+            hasAutoPrompted = true
+            try? await Task.sleep(for: .milliseconds(350))
+            showPicker = true
         }
         .photosPicker(isPresented: $showPicker, selection: $viewModel.selectedItem, matching: .images, photoLibrary: .shared())
     }
 
-    private var backButton: some View {
-        Button {
-            dismiss()
-        } label: {
-            Image(systemName: "chevron.left")
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(Theme.textPrimary)
-                .frame(width: 40, height: 40)
-                .background(Color.black.opacity(0.05))
-                .clipShape(Circle())
-        }
-    }
-
     private var initialState: some View {
         VStack(spacing: 0) {
-            HStack {
-                Text("Use Photo")
-                    .font(.system(size: 32, weight: .bold, design: .rounded))
-                    .foregroundStyle(Theme.textPrimary)
-                Spacer()
-            }
-
             Spacer()
 
             photoArt
                 .padding(.bottom, 28)
 
-            Text("We'll extract the text and turn it into a mindmap.")
-                .font(.system(size: 14, design: .rounded))
+            Text("We'll read the text from your photo.")
+                .font(.system(.subheadline, design: .rounded))
                 .foregroundStyle(Theme.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 20)
@@ -102,9 +80,10 @@ struct UploadPhotoView: View {
 
     private var previewState: some View {
         VStack(alignment: .leading, spacing: 20) {
-            Text("Preview of extracted text:")
-                .font(.system(size: 14, design: .rounded))
+            Text("Check the text and fix anything that looks wrong.")
+                .font(.system(.subheadline, design: .rounded))
                 .foregroundStyle(Theme.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
 
             TextEditor(text: $viewModel.extractedText)
                 .font(.system(.body, design: .rounded))
@@ -123,10 +102,11 @@ struct UploadPhotoView: View {
                 }
                 .buttonStyle(SecondaryButtonStyle(color: Theme.purple))
 
+                // Advances to the Personalize step rather than generating straight away.
                 Button(action: {
                     onTextExtracted(viewModel.extractedText)
                 }) {
-                    Text("Make Mindmap")
+                    Text("Continue")
                 }
                 .buttonStyle(PrimaryButtonStyle(color: Theme.purple, isFullWidth: true))
             }

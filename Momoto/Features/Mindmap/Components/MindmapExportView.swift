@@ -5,13 +5,12 @@
 
 import SwiftUI
 
-/// Static, non-interactive render of the full mindmap tree (current fold/unfold state,
-/// unaffected by canvas pan/zoom) — used to snapshot an image for sharing/saving.
-struct MindmapExportView: View {
+/// Static, non-interactive render of a mindmap tree at its natural size — no pan/zoom, no
+/// gestures, no chrome. Shared by the export/share snapshot and the card thumbnails so every
+/// non-interactive depiction of a mindmap is pixel-identical to the live canvas.
+struct MindmapStaticCanvas: View {
     let positions: [UUID: NodePosition]
     let contentSize: CGSize
-
-    private let padding: CGFloat = 32
 
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -31,7 +30,19 @@ struct MindmapExportView: View {
             }
         }
         .frame(width: contentSize.width, height: contentSize.height)
-        .padding(padding)
-        .background(Theme.white)
+    }
+}
+
+/// Full-tree render used to snapshot an image for sharing/saving.
+struct MindmapExportView: View {
+    let positions: [UUID: NodePosition]
+    let contentSize: CGSize
+
+    private let padding: CGFloat = 32
+
+    var body: some View {
+        MindmapStaticCanvas(positions: positions, contentSize: contentSize)
+            .padding(padding)
+            .background(Theme.white)
     }
 }

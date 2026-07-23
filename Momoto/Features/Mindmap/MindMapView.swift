@@ -228,7 +228,7 @@ struct MindMapView: View {
                     HStack(spacing: 8) {
                         Image(systemName: viewModel.isEditModeActive ? "pencil.circle.fill" : "info.circle.fill")
                             .foregroundStyle(viewModel.isEditModeActive ? .white : Theme.purple)
-                        Text(viewModel.isEditModeActive ? "Editing — hold any node for options" : "Hold any node to view its summary")
+                        Text(viewModel.isEditModeActive ? "Editing. Hold a node for options" : "Hold a node to see its summary")
                             .font(.system(.footnote, design: .rounded).weight(.medium))
                             .foregroundStyle(viewModel.isEditModeActive ? .white : Theme.textPrimary)
                             .contentTransition(.numericText())
@@ -325,21 +325,20 @@ struct MindMapView: View {
                         Button {
                             exportAndShare()
                         } label: {
-                            Label("Share Mindmap", systemImage: "square.and.arrow.up")
+                            Label("Share", systemImage: "square.and.arrow.up")
                         }
                         Button {
                             withAnimation(.easeInOut(duration: 0.2)) {
                                 viewModel.isEditModeActive = true
                             }
                         } label: {
-                            Label("Edit Mindmap", systemImage: "pencil")
+                            Label("Edit", systemImage: "pencil")
                         }
                     } label: {
                         if isExportingImage {
                             ProgressView()
                         } else {
                             Image(systemName: "ellipsis")
-                                .foregroundStyle(Theme.purple)
                         }
                     }
                     .disabled(isExportingImage)

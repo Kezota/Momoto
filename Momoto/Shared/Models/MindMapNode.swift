@@ -23,6 +23,19 @@ struct MindMapNode: Identifiable, Codable, Hashable {
         self.children = children
         self.isExpanded = isExpanded
     }
+
+    /// Deep copy with fresh identifiers throughout, so a duplicated tree can't share node IDs
+    /// with the original (which would make selection and editing act on both).
+    func regeneratingIDs() -> MindMapNode {
+        MindMapNode(
+            id: UUID(),
+            title: title,
+            symbol: symbol,
+            summary: summary ?? "",
+            children: children.map { $0.regeneratingIDs() },
+            isExpanded: isExpanded
+        )
+    }
 }
 
 // Placeholder for AI, exclude UUID & isExpanded from MindMapNode

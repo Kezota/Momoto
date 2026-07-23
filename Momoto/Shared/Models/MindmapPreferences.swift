@@ -2,6 +2,13 @@ import Foundation
 
 protocol PreferenceOption: CaseIterable, Hashable, Identifiable {
     var label: String { get }
+    /// One-line plain-language explanation of what picking this option actually does. Shown live
+    /// under the picker so the choice is understandable without trial and error.
+    var caption: String { get }
+}
+
+extension PreferenceOption {
+    var caption: String { "" }
 }
 
 nonisolated struct MindmapPreferences: Codable, Equatable, Sendable {
@@ -16,9 +23,16 @@ nonisolated struct MindmapPreferences: Codable, Equatable, Sendable {
         var id: String { rawValue }
         var label: String {
             switch self {
-            case .low: return "Low"
-            case .medium: return "Medium"
-            case .high: return "High"
+            case .low: return "Concise"
+            case .medium: return "Balanced"
+            case .high: return "Detailed"
+            }
+        }
+        var caption: String {
+            switch self {
+            case .low: return "Main ideas only. 2 levels deep."
+            case .medium: return "Key ideas plus support. 3 levels deep."
+            case .high: return "Full detail. 4 levels deep."
             }
         }
         var maxDepth: Int {
@@ -56,9 +70,16 @@ nonisolated struct MindmapPreferences: Codable, Equatable, Sendable {
         
         var label: String {
             switch self {
-            case .simple: return "Low"
-            case .standard: return "Medium"
-            case .technical: return "High"
+            case .simple: return "Simple"
+            case .standard: return "Standard"
+            case .technical: return "Technical"
+            }
+        }
+        var caption: String {
+            switch self {
+            case .simple: return "Everyday words, no jargon."
+            case .standard: return "Clear, neutral wording."
+            case .technical: return "Keeps technical terms."
             }
         }
         var promptDescriptor: String {
@@ -76,6 +97,12 @@ nonisolated struct MindmapPreferences: Codable, Equatable, Sendable {
             switch self {
             case .bahasa: return "Indonesia"
             case .english: return "English"
+            }
+        }
+        var caption: String {
+            switch self {
+            case .bahasa: return "Written in Bahasa Indonesia."
+            case .english: return "Written in English."
             }
         }
         var promptDescriptor: String {
