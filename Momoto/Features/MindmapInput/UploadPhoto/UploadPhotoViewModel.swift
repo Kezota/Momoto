@@ -12,14 +12,8 @@ final class UploadPhotoViewModel: ObservableObject {
     
     @Published var isWorking: Bool = false
     @Published var errorMessage: String?
-    @Published var extractedText: String = ""
-    @Published var selectedItem: PhotosPickerItem? {
-        didSet {
-            if let selectedItem {
-                handleSelectedItem(selectedItem)
-            }
-        }
-    }
+
+    @Published var selectedItem: PhotosPickerItem?
     
     let ocr = OCRViewModel()
     
@@ -32,7 +26,7 @@ final class UploadPhotoViewModel: ObservableObject {
         ocr.errorMessage = nil
     }
     
-    private func handleSelectedItem(_ item: PhotosPickerItem) {
+    func handleSelectedItem(_ item: PhotosPickerItem, onExtracted: @escaping (String) -> Void) {
         errorMessage = nil
         isWorking = true
         
@@ -46,7 +40,7 @@ final class UploadPhotoViewModel: ObservableObject {
                     await MainActor.run {
                         self.isWorking = false
                         if let text = text, !text.isEmpty {
-                            self.extractedText = text
+                            onExtracted(text)
                         } else {
                             self.errorMessage = ocr.errorMessage ?? "No readable text found in this photo."
                         }
@@ -64,13 +58,5 @@ final class UploadPhotoViewModel: ObservableObject {
                 }
             }
         }
-    }
-    
-    func clear() {
-        extractedText = ""
-        errorMessage = nil
-        selectedItem = nil
-        ocr.scannedText = ""
-        ocr.errorMessage = nil
     }
 }

@@ -166,7 +166,7 @@ struct HomeView: View {
                 case .paste:
                     PasteTextView(onSubmit: processInput)
                 case .preferences:
-                    PreferencesView(onGenerate: { prefs in
+                    PreferencesView(extractedText: $appState.pendingInputText, onGenerate: { prefs in
                         appState.pendingPreferences = prefs
                         appState.path.append(AppRoute.processing)
                     })
