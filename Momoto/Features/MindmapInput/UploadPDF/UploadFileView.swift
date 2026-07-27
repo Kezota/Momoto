@@ -19,11 +19,7 @@ struct UploadFileView: View {
             Theme.background.ignoresSafeArea()
 
             VStack(alignment: .leading, spacing: 20) {
-                if viewModel.extractedText.isEmpty {
-                    initialState
-                } else {
-                    previewState
-                }
+                initialState
             }
             .padding(.horizontal, 20)
             .padding(.top, 8)
@@ -41,7 +37,7 @@ struct UploadFileView: View {
         }
         .fileImporter(isPresented: $showImporter, allowedContentTypes: [.pdf]) { result in
             switch result {
-            case .success(let url): viewModel.handleURL(url)
+            case .success(let url): viewModel.handleURL(url, onExtracted: onTextExtracted)
             case .failure(let error): viewModel.errorMessage = error.localizedDescription
             }
         }
@@ -81,41 +77,6 @@ struct UploadFileView: View {
             }
             .buttonStyle(PrimaryButtonStyle(color: Theme.purple, isFullWidth: true))
             .disabled(viewModel.isWorking)
-        }
-    }
-
-    private var previewState: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            Text("Check the text and fix anything that looks wrong.")
-                .font(.system(.subheadline, design: .rounded))
-                .foregroundStyle(Theme.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            TextEditor(text: $viewModel.extractedText)
-                .font(.system(.body, design: .rounded))
-                .foregroundStyle(Theme.textPrimary)
-                .scrollContentBackground(.hidden)
-                .padding(16)
-                .frame(maxHeight: .infinity)
-                .background(Theme.white)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(Theme.stroke, lineWidth: 1))
-
-            HStack(spacing: 12) {
-                Button("Re-upload") {
-                    viewModel.clear()
-                    showImporter = true
-                }
-                .buttonStyle(SecondaryButtonStyle(color: Theme.purple))
-
-                // Advances to the Personalize step rather than generating straight away.
-                Button(action: {
-                    onTextExtracted(viewModel.extractedText)
-                }) {
-                    Text("Continue")
-                }
-                .buttonStyle(PrimaryButtonStyle(color: Theme.purple, isFullWidth: true))
-            }
         }
     }
 

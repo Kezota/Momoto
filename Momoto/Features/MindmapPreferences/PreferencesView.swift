@@ -3,51 +3,61 @@ import SwiftUI
 struct PreferencesView: View {
 
     @StateObject private var viewModel = MindmapPreferencesViewModel()
+    @Binding var extractedText: String
+    @State private var showPreview = false
 
     var onGenerate: (MindmapPreferences) -> Void
 
     var body: some View {
         ZStack {
             Theme.background.ignoresSafeArea()
-
+            
             VStack(spacing: 0) {
                 ScrollView(showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 16) {
                         intro
-
+                        
                         PreferenceCard(
                             icon: "point.3.filled.connected.trianglepath.dotted",
                             title: "Level of detail",
                             subtitle: "How deep the map goes.",
                             selection: $viewModel.detail
                         )
-
+                        
                         PreferenceCard(
                             icon: "textformat.size",
                             title: "Reading level",
                             subtitle: "How simple the wording is.",
                             selection: $viewModel.complexity
                         )
-
+                        
                         PreferenceCard(
                             icon: "globe",
                             title: "Language",
                             subtitle: "Output language.",
                             selection: $viewModel.language
                         )
-
+                        
                         summaryCard
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, 4)
                     .padding(.bottom, 24)
                 }
-
+                
                 generateBar
             }
         }
         .navigationTitle("Personalize")
         .navigationBarTitleDisplayMode(.large)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("Preview") { showPreview = true }
+            }
+        }
+        .sheet(isPresented: $showPreview) {
+            ExtractedTextSheet(text: $extractedText)
+        }
     }
 
     private var intro: some View {
@@ -106,6 +116,6 @@ struct PreferencesView: View {
 
 #Preview {
     NavigationStack {
-        PreferencesView(onGenerate: { _ in })
+        PreferencesView(extractedText: .constant("Extracted text preview."), onGenerate: { _ in })
     }
 }

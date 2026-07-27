@@ -11,7 +11,7 @@ final class UploadFileViewModel: ObservableObject {
     
     @Published var isWorking: Bool = false
     @Published var errorMessage: String?
-    @Published var extractedText: String = ""
+
     
     var hasError: Bool {
         errorMessage != nil
@@ -21,7 +21,7 @@ final class UploadFileViewModel: ObservableObject {
         errorMessage = nil
     }
     
-    func handleURL(_ url: URL) {
+    func handleURL(_ url: URL, onExtracted: @escaping (String) -> Void) {
         errorMessage = nil
         isWorking = true
         
@@ -39,13 +39,8 @@ final class UploadFileViewModel: ObservableObject {
                     self.errorMessage = "No readable text found in this PDF."
                     return
                 }
-                self.extractedText = text
+                onExtracted(text)
             }
         }
-    }
-    
-    func clear() {
-        extractedText = ""
-        errorMessage = nil
     }
 }
