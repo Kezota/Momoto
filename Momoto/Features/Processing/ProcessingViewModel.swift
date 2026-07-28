@@ -59,7 +59,8 @@ final class ProcessingViewModel: ObservableObject {
                 root: rootNode,
                 rawText: text,
                 createdAt: Date(),
-                source: source
+                source: source,
+                language: preferences.language
             )
             HistoryService.shared.add(mindmap: mindMap)
             stopLoadingAnimation()

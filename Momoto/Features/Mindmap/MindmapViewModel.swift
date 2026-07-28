@@ -8,8 +8,9 @@
 import SwiftUI
 import Combine
 
+@MainActor
 final class MindmapViewModel: ObservableObject {
-    
+
     @Published var mindMap: MindMap
     @Published var selectedNodeID: UUID? = nil
     @Published var cachedLayout: LayoutResult = LayoutResult(positions: [:], totalHeight: 0)
@@ -18,11 +19,16 @@ final class MindmapViewModel: ObservableObject {
     @Published var isEditModeActive: Bool = false
     @Published var editingNodeID: UUID? = nil
     @Published var showFloatingMenuForNodeID: UUID? = nil
-    
+    @Published var generatingNodeID: UUID? = nil
+    @Published var iconPickerNodeID: UUID? = nil
+
+    @Published var isReadAloudMode: Bool = false
+
     static var copiedNode: MindMapNode? = nil
-    
-    private let columnSpacing: CGFloat = 60
-    private let rowSpacing: CGFloat = 20
+
+    private let narrator = SpeechNarrator()
+
+    private let chatbotService = ChatbotService()
     
     init(mindMap: MindMap) {
         self.mindMap = mindMap
@@ -65,8 +71,9 @@ final class MindmapViewModel: ObservableObject {
     
     // MARK: - Node Operations
     
-    func addChild(to parentID: UUID, title: String = "New Node") -> UUID {
-        let newNode = MindMapNode(id: UUID(), title: title, symbol: "circle", summary: "", children: [], isExpanded: true)
+    @discardableResult
+    func addChild(to parentID: UUID, title: String = "New Node", symbol: String = "circle") -> UUID {
+        let newNode = MindMapNode(id: UUID(), title: title, symbol: symbol, summary: "", children: [], isExpanded: true)
         
         func insertChild(in node: MindMapNode) -> MindMapNode {
             var copy = node
@@ -87,39 +94,48 @@ final class MindmapViewModel: ObservableObject {
     
     func addSibling(to targetID: UUID, title: String = "New Node") -> UUID? {
         let newNode = MindMapNode(id: UUID(), title: title, symbol: "circle", summary: "", children: [], isExpanded: true)
-        var insertedID: UUID? = newNode.id
-        
-        func insertSibling(in node: MindMapNode) -> (node: MindMapNode, found: Bool) {
+        return insertSibling(newNode, after: targetID)
+    }
+
+    @discardableResult
+    func duplicateNode(_ node: MindMapNode) -> UUID? {
+        let duplicate = recreateUUIDs(for: node)
+        return insertSibling(duplicate, after: node.id)
+    }
+
+    @discardableResult
+    private func insertSibling(_ newNode: MindMapNode, after targetID: UUID) -> UUID? {
+        // Root cannot have siblings
+        if mindMap.root.id == targetID {
+            return nil
+        }
+
+        func insert(in node: MindMapNode) -> (node: MindMapNode, found: Bool) {
             var copy = node
-            
+
             if let index = copy.children.firstIndex(where: { $0.id == targetID }) {
                 copy.children.insert(newNode, at: index + 1)
                 return (copy, true)
             }
-            
+
             var foundAny = false
             copy.children = copy.children.map { child in
-                let result = insertSibling(in: child)
+                let result = insert(in: child)
                 if result.found {
                     foundAny = true
                 }
                 return result.node
             }
-            
+
             return (copy, foundAny)
         }
-        
-        // Root cannot have siblings
-        if mindMap.root.id == targetID {
-            return nil
-        }
-        
-        let result = insertSibling(in: mindMap.root)
+
+        let result = insert(in: mindMap.root)
         if result.found {
             mindMap.root = result.node
             recalculateLayout()
             persistChange()
-            return insertedID
+            return newNode.id
         }
         return nil
     }
@@ -168,9 +184,41 @@ final class MindmapViewModel: ObservableObject {
         persistChange()
     }
     
+    func setSymbol(nodeID: UUID, symbol: String) {
+        func updateSymbol(in node: MindMapNode) -> MindMapNode {
+            var copy = node
+            if copy.id == nodeID {
+                copy.symbol = symbol
+                return copy
+            }
+            copy.children = copy.children.map { updateSymbol(in: $0) }
+            return copy
+        }
+
+        mindMap.root = updateSymbol(in: mindMap.root)
+        recalculateLayout()
+        persistChange()
+    }
+
+    func findNode(id: UUID) -> MindMapNode? {
+        func search(_ node: MindMapNode) -> MindMapNode? {
+            if node.id == id { return node }
+            for child in node.children {
+                if let found = search(child) { return found }
+            }
+            return nil
+        }
+        return search(mindMap.root)
+    }
+
     func copyNode(_ node: MindMapNode) {
         UIPasteboard.general.string = node.title
         Self.copiedNode = node
+    }
+
+    func cutNode(_ node: MindMapNode) {
+        copyNode(node)
+        deleteNode(nodeID: node.id)
     }
     
     func pasteNode(to parentID: UUID) {
@@ -222,6 +270,32 @@ final class MindmapViewModel: ObservableObject {
         )
     }
     
+    func growIdeas(for node: MindMapNode) {
+        guard generatingNodeID == nil else { return }
+        let context = modelContext
+        generatingNodeID = node.id
+        Task { @MainActor in
+            let ideas = await chatbotService.growIdeas(for: node.title, context: context)
+            for idea in ideas {
+                addChild(to: node.id, title: idea.title, symbol: idea.icon)
+            }
+            generatingNodeID = nil
+        }
+    }
+
+    func workBreakdown(for node: MindMapNode) {
+        guard generatingNodeID == nil else { return }
+        let context = modelContext
+        generatingNodeID = node.id
+        Task { @MainActor in
+            let tasks = await chatbotService.workBreakdown(for: node.title, context: context)
+            for task in tasks {
+                addChild(to: node.id, title: task.title, symbol: task.icon)
+            }
+            generatingNodeID = nil
+        }
+    }
+
     private func outlineText(from node: MindMapNode, depth: Int = 0) -> String {
         let indent = String(repeating: "  ", count: depth)
         let line = "\(indent)- \(node.title)"
@@ -237,42 +311,53 @@ final class MindmapViewModel: ObservableObject {
         return nil
     }
     
+    // MARK: - Read Aloud (text-to-speech)
+
+    func enterReadAloud() {
+        isReadAloudMode = true
+    }
+
+    func exitReadAloud() {
+        narrator.stop()
+        isReadAloudMode = false
+    }
+
+    /// Speaks a node in the language the mindmap was generated in.
+    func speak(_ node: MindMapNode) {
+        narrator.speak(spokenText(for: node), language: mindMap.language)
+    }
+
+    /// Stops any narration in progress (e.g. when leaving the screen).
+    func stopSpeaking() {
+        narrator.stop()
+    }
+
+    /// What the voice reads: the title, then the summary if there is one.
+    private func spokenText(for node: MindMapNode) -> String {
+        let summary = (node.summary ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        return summary.isEmpty ? node.title : "\(node.title). \(summary)"
+    }
+
+    // MARK: - Info Badge
+
+    var infoBadgeIcon: String {
+        if isEditModeActive { return "pencil.circle.fill" }
+        if isReadAloudMode { return "speaker.wave.2.circle.fill" }
+        return "info.circle.fill"
+    }
+
+    var infoBadgeText: String {
+        if isEditModeActive { return "Editing. Hold a node for options" }
+        if isReadAloudMode { return "Hold a node to hear it read aloud" }
+        return "Hold a node to see its summary"
+    }
+
     // MARK: - Layout Engine
-    
+
     func recalculateLayout() {
-        cachedLayout = buildLayout(node: mindMap.root, depth: 0, startY: 0)
-        contentSize = calculateCanvasSize(positions: cachedLayout.positions)
+        let result = MindmapLayoutEngine.layout(root: mindMap.root)
+        cachedLayout = result.layout
+        contentSize = result.contentSize
     }
-    
-    private func buildLayout(node: MindMapNode, depth: Int, startY: CGFloat, parentID: UUID? = nil) -> LayoutResult {
-        var positions: [UUID: NodePosition] = [:]
-        let x = CGFloat(depth) * (MindmapNodeView.width + columnSpacing)
-        
-        if node.isExpanded && !node.children.isEmpty {
-            var childY = startY
-            
-            for child in node.children {
-                let result = buildLayout(node: child, depth: depth + 1, startY: childY, parentID: node.id)
-                positions.merge(result.positions) { _, new in new }
-                childY += result.totalHeight + rowSpacing
-            }
-            
-            let subtreeHeight = childY - startY - rowSpacing
-            let centreY = startY + subtreeHeight / 2 - MindmapNodeView.height / 2
-            
-            positions[node.id] = NodePosition(id: node.id, node: node, depth: depth, origin: CGPoint(x: x, y: centreY), parentID: parentID)
-            return LayoutResult(positions: positions, totalHeight: subtreeHeight)
-        } else {
-            positions[node.id] = NodePosition(id: node.id, node: node, depth: depth, origin: CGPoint(x: x, y: startY), parentID: parentID)
-            return LayoutResult(positions: positions, totalHeight: MindmapNodeView.height)
-        }
-    }
-    
-    private func calculateCanvasSize(positions: [UUID: NodePosition]) -> CGSize {
-        let maxX = positions.values.map { $0.origin.x + MindmapNodeView.width }.max() ?? 0
-        let maxY = positions.values.map { $0.origin.y + MindmapNodeView.height }.max() ?? 0
-        return CGSize(width: maxX, height: maxY)
-    }
-    
 }
 

@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Combine
 
 struct MindMapView: View {
     
@@ -29,6 +30,14 @@ struct MindMapView: View {
     // Popup long-press
     @State private var poppedNode: MindMapNode? = nil
     @State private var showChat: Bool = false
+
+    // Export
+    @State private var exportedImage: UIImage? = nil
+    @State private var showShareSheet: Bool = false
+    @State private var isExportingImage: Bool = false
+    
+    // Narrator
+    @State private var showVoiceInfo = false
     
     private var liveScale: CGFloat {
         min(max(scale * pinchDelta, 0.4), 2.5)
@@ -43,7 +52,7 @@ struct MindMapView: View {
                 .foregroundStyle(.white)
                 .frame(width: 70, height: 100)
                 .background(
-                    Circle().fill(Color.purple)
+                    Circle().fill(Theme.purple)
                 )
                 .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 4)
         }
@@ -54,12 +63,142 @@ struct MindMapView: View {
         CGSize(width: offset.width + dragDelta.width,
                height: offset.height + dragDelta.height)
     }
+
+    // Screen-space frame of a node, projecting its canvas position through the
+    // current pan/zoom so the edit menu anchor is computed independently of any
+    // ancestor transform (UIEditMenuInteraction positions unreliably when its
+    // host view sits inside a scaled/offset SwiftUI hierarchy).
+    private func screenFrame(for pos: NodePosition) -> CGRect {
+        CGRect(
+            x: liveOffset.width + pos.origin.x * liveScale,
+            y: liveOffset.height + pos.origin.y * liveScale,
+            width: MindmapNodeView.width * liveScale,
+            height: pos.height * liveScale
+        )
+    }
+
+    // Renders the full tree (current fold/unfold state) to an image, independent of the
+    // on-screen pan/zoom, so exports always capture the whole mindmap rather than the viewport.
+    @MainActor
+    private func renderMindmapImage() -> UIImage? {
+        let exportView = MindmapExportView(
+            positions: viewModel.cachedLayout.positions,
+            contentSize: viewModel.contentSize
+        )
+        let renderer = ImageRenderer(content: exportView)
+        renderer.scale = UIScreen.main.scale
+        return renderer.uiImage
+    }
+
+    // Kicks off the render with a visible loading state and only opens the share sheet once
+    // the image is fully ready — ImageRenderer can return a blank first frame if the share
+    // sheet is presented in the same tick the render was requested.
+    private func exportAndShare() {
+        isExportingImage = true
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 150_000_000)
+            exportedImage = renderMindmapImage()
+            isExportingImage = false
+            if exportedImage != nil {
+                showShareSheet = true
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var editMenuAnchor: some View {
+        if let menuNodeID = viewModel.showFloatingMenuForNodeID,
+           viewModel.editingNodeID == nil,
+           let pos = viewModel.cachedLayout.positions[menuNodeID] {
+            let frame = screenFrame(for: pos)
+            Color.clear
+                .frame(width: frame.width, height: frame.height)
+                .background(
+                    EditMenuBridge(
+                        isPresented: true,
+                        sections: editMenuSections(for: pos.node),
+                        onDismiss: {
+                            viewModel.showFloatingMenuForNodeID = nil
+                        }
+                    )
+                )
+                .position(x: frame.midX, y: frame.midY)
+                .allowsHitTesting(false)
+        }
+    }
+
+    private func editMenuSections(for node: MindMapNode) -> [EditMenuSection] {
+        let isRoot = node.id == viewModel.mindMap.root.id
+        return [
+            EditMenuSection([
+                EditMenuAction(title: isRoot ? "" : "Cut", icon: "scissors") {
+                    viewModel.cutNode(node)
+                },
+                EditMenuAction(title: "Copy", icon: "doc.on.doc") {
+                    viewModel.copyNode(node)
+                },
+                EditMenuAction(title: "Paste", icon: "doc.on.clipboard") {
+                    viewModel.pasteNode(to: node.id)
+                }
+            ].filter { !$0.title.isEmpty }, isCompact: true),
+            EditMenuSection([
+                EditMenuAction(title: "Rename", icon: "pencil") {
+                    viewModel.editingNodeID = node.id
+                },
+                EditMenuAction(title: "Change Icon", icon: "square.grid.2x2") {
+                    viewModel.iconPickerNodeID = node.id
+                },
+                EditMenuAction(title: isRoot ? "" : "Duplicate", icon: "plus.square.on.square") {
+                    if let newID = viewModel.duplicateNode(node) {
+                        viewModel.selectedNodeID = newID
+                    }
+                }
+            ].filter { !$0.title.isEmpty }),
+            EditMenuSection([
+                EditMenuAction(title: "Delete", icon: "trash", isDestructive: true) {
+                    viewModel.deleteNode(nodeID: node.id)
+                }
+            ]),
+            EditMenuSection([
+                EditMenuAction(
+                    title: node.children.isEmpty ? "" : (node.isExpanded ? "Fold" : "Unfold"),
+                    icon: node.isExpanded ? "rectangle.compress.vertical" : "rectangle.expand.vertical"
+                ) {
+                    viewModel.toggleExpand(nodeID: node.id)
+                }
+            ].filter { !$0.title.isEmpty }),
+            EditMenuSection([
+                EditMenuAction(title: "Add Child", icon: "arrow.right.circle") {
+                    let newID = viewModel.addChild(to: node.id)
+                    viewModel.selectedNodeID = newID
+                    viewModel.editingNodeID = newID
+                },
+                EditMenuAction(title: isRoot ? "" : "Add Sibling", icon: "arrow.down.circle") {
+                    if let newID = viewModel.addSibling(to: node.id) {
+                        viewModel.selectedNodeID = newID
+                        viewModel.editingNodeID = newID
+                    }
+                }
+            ].filter { !$0.title.isEmpty }),
+            EditMenuSection([
+                EditMenuAction(title: "Grow Ideas", icon: "sparkles") {
+                    viewModel.growIdeas(for: node)
+                }
+            ]),
+            EditMenuSection([
+                EditMenuAction(title: "Detail", icon: "info.circle") {
+                    poppedNode = node
+                }
+            ])
+        ]
+    }
     
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                Theme.white
+                (viewModel.isEditModeActive ? Theme.purple.opacity(0.05) : Theme.white)
                     .ignoresSafeArea()
+                    .animation(.easeInOut(duration: 0.2), value: viewModel.isEditModeActive)
                     .onTapGesture {
                         if viewModel.isEditModeActive {
                             withAnimation(.easeInOut(duration: 0.15)) {
@@ -74,35 +213,59 @@ struct MindMapView: View {
                 ZStack(alignment: .topLeading) {
                     MindmapLineLayer(positions: viewModel.cachedLayout.positions, size: viewModel.contentSize)
                     MindmapNodeLayer(viewModel: viewModel) { node in
-                        poppedNode = node
+                        if viewModel.isReadAloudMode {
+                            viewModel.speak(node)
+                        } else {
+                            poppedNode = node
+                        }
                     }
                 }
                 .scaleEffect(liveScale, anchor: .topLeading)
                 .offset(liveOffset)
                 // Constrain the layout size to the viewport to prevent the parent from expanding
                 .frame(width: geometry.size.width, height: geometry.size.height, alignment: .topLeading)
-                
-                // Info Overlay (Fixed Position)
+
+                // Edit menu anchor — deliberately sits OUTSIDE the scaled/offset canvas above
+                // so its computed screen frame is the source of truth, not an ancestor transform.
+                editMenuAnchor
+                    .frame(width: geometry.size.width, height: geometry.size.height, alignment: .topLeading)
+
+                // Info Overlay (Fixed Position) — a solid, distinct badge while editing so the
+                // mode change reads clearly at a glance, not just via the toolbar button.
                 VStack {
                     HStack(spacing: 8) {
-                        Image(systemName: "info.circle.fill")
-                            .foregroundStyle(Theme.purple)
-                        Text(viewModel.isEditModeActive ? "Hold any node to show the edit toolbar" : "Hold any node to view its summary")
+                        Image(systemName: viewModel.infoBadgeIcon)
+                            .foregroundStyle(viewModel.isEditModeActive ? .white : Theme.purple)
+                        Text(viewModel.infoBadgeText)
                             .font(.system(.footnote, design: .rounded).weight(.medium))
-                            .foregroundStyle(Theme.textPrimary)
+                            .foregroundStyle(viewModel.isEditModeActive ? .white : Theme.textPrimary)
                             .contentTransition(.numericText())
                             .animation(.easeInOut, value: viewModel.isEditModeActive)
                     }
                     .padding(.vertical, 10)
                     .padding(.horizontal, 16)
-                    .background(.ultraThinMaterial, in: Capsule())
+                    .background(
+                        Capsule().fill(viewModel.isEditModeActive ? AnyShapeStyle(Theme.purple) : AnyShapeStyle(.ultraThinMaterial))
+                    )
                     .shadow(color: Theme.black.opacity(0.05), radius: 10, y: 4)
                     .padding(.top, 110)
                     .opacity(poppedNode == nil ? 1 : 0)
                     .animation(.easeInOut(duration: 0.2), value: poppedNode)
+                    .animation(.easeInOut(duration: 0.2), value: viewModel.isEditModeActive)
                     .allowsHitTesting(false)
-                    
+
                     Spacer()
+                }
+
+                // Edit-mode frame — a thin border around the whole canvas so the active
+                // editing state stays visible even when scrolled away from the toolbar/badge.
+                if viewModel.isEditModeActive {
+                    Rectangle()
+                        .stroke(Theme.purple, lineWidth: 3)
+                        .ignoresSafeArea()
+                        .onDisappear { viewModel.stopSpeaking() }
+                        .allowsHitTesting(false)
+                        .transition(.opacity)
                 }
                 
                 // Chat FAB (Fixed Position)
@@ -152,20 +315,75 @@ struct MindMapView: View {
                 }
             }
             
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        viewModel.isEditModeActive.toggle()
-                        if !viewModel.isEditModeActive {
+            if viewModel.isEditModeActive {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            viewModel.isEditModeActive = false
                             viewModel.selectedNodeID = nil
                             viewModel.editingNodeID = nil
                             viewModel.showFloatingMenuForNodeID = nil
                         }
+                    } label: {
+                        Text("Done")
+                            .font(.system(.body, design: .rounded).weight(.semibold))
+                            .foregroundStyle(Theme.purple)
                     }
-                } label: {
-                    Text(viewModel.isEditModeActive ? "Done" : "Edit")
-                        .font(.system(.body, design: .rounded).weight(.semibold))
-                        .foregroundStyle(Theme.purple)
+                }
+            } else if viewModel.isReadAloudMode {
+                // Separate items + a spacer so each gets its OWN glass background:
+                // a circle for the info icon, an oval for "Done" (without the
+                // spacer, iOS 26 merges adjacent items into one shared capsule).
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        showVoiceInfo = true
+                    } label: {
+                        Image(systemName: "info.circle")
+                            .foregroundStyle(Theme.purple)
+                    }
+                }
+                ToolbarSpacer(.fixed, placement: .navigationBarTrailing)
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            viewModel.exitReadAloud()
+                        }
+                    } label: {
+                        Text("Done")
+                            .font(.system(.body, design: .rounded).weight(.semibold))
+                            .foregroundStyle(Theme.purple)
+                    }
+                }
+            } else {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Menu {
+                        Button {
+                            exportAndShare()
+                        } label: {
+                            Label("Share", systemImage: "square.and.arrow.up")
+                        }
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                viewModel.isEditModeActive = true
+                            }
+                        } label: {
+                            Label("Edit", systemImage: "pencil")
+                        }
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                viewModel.enterReadAloud()
+                            }
+                        } label: {
+                            Label("Read Aloud", systemImage: "speaker.wave.2")
+                        }
+                    } label: {
+                        if isExportingImage {
+                            ProgressView()
+                        } else {
+                            Image(systemName: "ellipsis")
+                        }
+                    }
+                    .disabled(isExportingImage)
                 }
             }
         }
@@ -174,8 +392,36 @@ struct MindMapView: View {
                 ChatbotView(context: viewModel.modelContext)
             }
         }
+        .sheet(isPresented: Binding(
+            get: { viewModel.iconPickerNodeID != nil },
+            set: { if !$0 { viewModel.iconPickerNodeID = nil } }
+        )) {
+            if let nodeID = viewModel.iconPickerNodeID, let node = viewModel.findNode(id: nodeID) {
+                IconPickerView(currentSymbol: node.symbol) { symbol in
+                    viewModel.setSymbol(nodeID: nodeID, symbol: symbol)
+                }
+            }
+        }
+        .sheet(isPresented: $showShareSheet) {
+            if let exportedImage {
+                ShareSheet(activityItems: [exportedImage])
+            }
+        }
+        .alert("Download a natural voice", isPresented: $showVoiceInfo) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text("""
+            For a more natural voice, download one in Settings:
+
+            1. Accessibility
+            2. Live Speech
+            3. Preferred Voices
+            4. Pick English or Indonesian
+            5. Download the voice you want
+            """)
+        }
     }
-    
+
 }
 
 #Preview {

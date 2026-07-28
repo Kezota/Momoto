@@ -2,51 +2,42 @@
 //  PasteTextView.swift
 //  MomotoMindmap
 //
-//  Created by Kezia Meilany Tandapai on 01/05/26.
-//
 
 import SwiftUI
 import UIKit
 
 struct PasteTextView: View {
-    
     @StateObject private var viewModel = PasteTextViewModel()
     @FocusState private var editorFocused: Bool
-    
+
     var onSubmit: (String) -> Void
-    
+
     var body: some View {
         ZStack {
             Theme.background.ignoresSafeArea()
             
-            VStack(spacing: 8) {
-                HStack {
-                    Text("Paste your text")
-                        .font(.system(.largeTitle, design: .rounded).weight(.bold))
-                        .foregroundStyle(Theme.textPrimary)
-                    Spacer()
-                }
-                .padding(.top, 12)
-                
-                Text("We'll summarise it into an interactive mindmap.")
+            VStack(alignment: .leading, spacing: 20) {
+                Text("Paste or type your text. You'll pick the style next.")
                     .font(.system(.subheadline, design: .rounded))
                     .foregroundStyle(Theme.textSecondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.bottom, 16)
-                
+                    .fixedSize(horizontal: false, vertical: true)
+
+                // Editor Card Container
                 editorCard
-                
+
                 Spacer(minLength: 0)
-                
-                Button("Generate Mindmap", action: submit)
+
+                // Advances to the Personalize step rather than generating straight away.
+                Button("Continue", action: submit)
                     .buttonStyle(PrimaryButtonStyle(color: Theme.purple, isFullWidth: true))
                     .disabled(viewModel.isSubmitDisabled)
             }
             .padding(.horizontal, 20)
-            .padding(.top, 12)
+            .padding(.top, 8)
             .padding(.bottom, 24)
         }
-        .navigationBarTitleDisplayMode(.inline)
+        .navigationTitle("Paste Text")
+        .navigationBarTitleDisplayMode(.large)
         .toolbar {
             ToolbarItem(placement: .keyboard) { Spacer() }
             ToolbarItem(placement: .keyboard) {
@@ -54,7 +45,7 @@ struct PasteTextView: View {
             }
         }
     }
-    
+
     private var editorCard: some View {
         ZStack(alignment: .topLeading) {
             RoundedRectangle(cornerRadius: 22, style: .continuous)
@@ -63,27 +54,27 @@ struct PasteTextView: View {
                     RoundedRectangle(cornerRadius: 22, style: .continuous)
                         .stroke(Theme.stroke, lineWidth: 1)
                 )
-                .shadow(color: Theme.black.opacity(0.04), radius: 12, x: 0, y: 6)
-            
+                .shadow(color: Theme.black.opacity(0.03), radius: 8, x: 0, y: 4)
+
             TextEditor(text: $viewModel.text)
                 .font(.system(.body, design: .rounded))
                 .foregroundStyle(Theme.textPrimary)
-                .padding(14)
+                .padding(16)
                 .scrollContentBackground(.hidden)
                 .focused($editorFocused)
-            
+
             if viewModel.text.isEmpty {
-                Text("Paste a paragraph or two here...")
+                Text("Paste a paragraph or two here…")
                     .font(.system(.body, design: .rounded))
                     .foregroundStyle(Theme.textSecondary.opacity(0.6))
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 22)
+                    .padding(.horizontal, 22)
+                    .padding(.vertical, 24)
                     .allowsHitTesting(false)
             }
         }
-        .frame(minHeight: 320)
+        .frame(maxHeight: .infinity)
     }
-    
+
     private func submit() {
         editorFocused = false
         viewModel.submit(onSubmit: onSubmit)

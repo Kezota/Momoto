@@ -11,26 +11,32 @@ import UIKit
 struct CameraView: View {
     let onTextCaptured: (String) -> Void
     @StateObject private var viewModel = CameraViewModel()
-    @Environment(\.dismiss) private var dismiss
-    
+
     var body: some View {
         ZStack {
             Theme.background.ignoresSafeArea()
             
             if viewModel.ocr.isProcessing {
                 processingView
-            } else if viewModel.phase == .textSelection {
-                CapturedTextSelectionView(viewModel: viewModel)
-            } else if viewModel.phase == .capturedText {
-                EditPreviewView(viewModel: viewModel, onTextCaptured: onTextCaptured)
             } else {
-                scannerLayer
-                blackBars
-                topOverlay
-                bottomOverlay
+                switch viewModel.phase {
+                case .scanning:
+                    scannerLayer
+                    blackBars
+                    bottomOverlay
+                case .textSelection:
+                    CapturedTextSelectionView(viewModel: viewModel, onTextCaptured: onTextCaptured)
+                }
             }
         }
-        .navigationBarHidden(true)
+        .navigationTitle("Scan")
+        .navigationBarTitleDisplayMode(.inline)
+        // The crop/selection step is an immersive editor over the captured image and keeps its
+        // own floating controls; every other phase uses the standard navigation bar.
+        .toolbar(viewModel.phase == .textSelection ? .hidden : .visible, for: .navigationBar)
+        .toolbarBackground(.hidden, for: .navigationBar)
+        .toolbarColorScheme(isCameraLive ? .dark : nil, for: .navigationBar)
+        // In the review step "back" means re-scan, not leave the scanner.
         .alert(
             "Couldn't read the text",
             isPresented: Binding(
@@ -44,10 +50,15 @@ struct CameraView: View {
         }
     }
     
+    /// True only while the live camera feed is on screen, where the bar sits over dark bands.
+    private var isCameraLive: Bool {
+        !viewModel.ocr.isProcessing && viewModel.phase != .textSelection
+    }
+
     private var processingView: some View {
         VStack(spacing: 16) {
             ProgressView().tint(Theme.purple).scaleEffect(1.5)
-            Text("Extracting text...")
+            Text("Reading the text…")
                 .font(.system(.headline, design: .rounded))
                 .foregroundStyle(Theme.textPrimary)
         }
@@ -82,28 +93,6 @@ struct CameraView: View {
         }
         .ignoresSafeArea()
         .allowsHitTesting(false)
-    }
-    
-    private var topOverlay: some View {
-        VStack {
-            HStack {
-                Button {
-                    dismiss()
-                } label: {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundStyle(.black)
-                        .frame(width: 44, height: 44)
-                        .background(Circle().fill(Color.white))
-                        .shadow(color: .black.opacity(0.15), radius: 6, y: 2)
-                }
-                Spacer()
-            }
-            .padding(.horizontal, 20)
-            .padding(.top, 16)
-            
-            Spacer()
-        }
     }
     
     private var bottomOverlay: some View {

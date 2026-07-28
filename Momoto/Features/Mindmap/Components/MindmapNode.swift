@@ -12,62 +12,73 @@ struct MindmapNodeView: View {
     let depth: Int
     let isSelected: Bool
     let isEditing: Bool
+    var isGenerating: Bool = false
+    var branchIndex: Int? = nil
+    var height: CGFloat = nodeMinHeight
     let onCommit: (String) -> Void
-    var focusedNodeID: FocusState<UUID?>.Binding
-    
+    var focusedNodeID: FocusState<UUID?>.Binding? = nil
+
     @State private var editText: String = ""
-    
+
     static let width: CGFloat = 160
-    static let height: CGFloat = 58
-    
+
+    private var textColor: Color { nodeTextColor(depth: depth) }
+
     var body: some View {
         HStack(spacing: 8) {
             if !node.symbol.isEmpty {
                 Image(systemName: node.symbol)
                     .font(.system(depth == 0 ? .headline : .subheadline, design: .rounded))
-                    .foregroundStyle(Theme.textPrimary)
+                    .foregroundStyle(textColor)
             }
-            
+
             if isEditing {
-                TextField("", text: $editText, onCommit: {
-                    onCommit(editText)
-                })
-                .focused(focusedNodeID, equals: node.id)
-                .font(.system(depth == 0 ? .headline : .subheadline, design: .rounded))
-                .fontWeight(depth == 0 ? .bold : .semibold)
-                .foregroundStyle(Theme.textPrimary)
-                .textFieldStyle(.plain)
-                .frame(maxWidth: .infinity)
-                .onChange(of: focusedNodeID.wrappedValue) { _, newValue in
-                    if newValue != node.id {
-                        onCommit(editText)
+                Group {
+                    if let focusedNodeID {
+                        TextField("", text: $editText, onCommit: {
+                            onCommit(editText)
+                        })
+                        .focused(focusedNodeID, equals: node.id)
+                    } else {
+                        TextField("", text: $editText, onCommit: {
+                            onCommit(editText)
+                        })
                     }
                 }
+                .font(.system(depth == 0 ? .headline : .subheadline, design: .rounded))
+                .fontWeight(depth == 0 ? .bold : .semibold)
+                .foregroundStyle(textColor)
+                .tint(textColor)
+                .textFieldStyle(.plain)
+                .frame(maxWidth: .infinity)
             } else {
                 Text(node.title)
                     .font(.system(depth == 0 ? .headline : .subheadline, design: .rounded))
                     .fontWeight(depth == 0 ? .bold : .semibold)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.85)
+                    .lineLimit(4)
+                    .minimumScaleFactor(0.9)
                     .multilineTextAlignment(.leading)
-                    .foregroundStyle(Theme.textPrimary)
+                    .foregroundStyle(textColor)
             }
-            
+
             Spacer(minLength: 0)
-            
-            // Show chevron only when the node has children
-            if !node.children.isEmpty {
+
+            if isGenerating {
+                ProgressView()
+                    .controlSize(.mini)
+            } else if !node.children.isEmpty {
+                // Show chevron only when the node has children
                 Image(systemName: node.isExpanded ? "chevron.left" : "chevron.right")
                     .font(.system(.caption, design: .rounded).weight(.bold))
-                    .foregroundStyle(Theme.textSecondary)
+                    .foregroundStyle(textColor.opacity(0.7))
             }
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
-        .frame(width: Self.width, height: Self.height)
+        .frame(width: Self.width, height: height)
         .background(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(colorForDepth(depth))
+                .fill(nodeFillColor(depth: depth, branchIndex: branchIndex))
         )
         .overlay(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
@@ -82,9 +93,11 @@ struct MindmapNodeView: View {
                 editText = node.title
             }
         }
-        .onChange(of: isEditing) { _, newValue in
+        .onChange(of: isEditing) { wasEditing, newValue in
             if newValue {
                 editText = node.title
+            } else if wasEditing {
+                onCommit(editText)
             }
         }
         .onDisappear()

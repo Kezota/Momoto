@@ -16,9 +16,9 @@ struct MindmapLineLayer: View {
                       let parentPos = positions[parentID] else { continue }
                 
                 let startX = parentPos.origin.x + MindmapNodeView.width
-                let startY = parentPos.origin.y + MindmapNodeView.height / 2
+                let startY = parentPos.origin.y + parentPos.height / 2
                 let endX   = pos.origin.x
-                let endY   = pos.origin.y + MindmapNodeView.height / 2
+                let endY   = pos.origin.y + pos.height / 2
                 let midX   = (startX + endX) / 2
                 
                 var path = Path()
@@ -29,7 +29,7 @@ struct MindmapLineLayer: View {
                     control2: CGPoint(x: midX, y: endY)
                 )
                 context.stroke(path,
-                               with: .color(Theme.textSecondary.opacity(0.6)),
+                               with: .color(branchLineColor(branchIndex: pos.branchIndex)),
                                style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
             }
         }
