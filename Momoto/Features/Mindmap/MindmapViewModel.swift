@@ -8,8 +8,9 @@
 import SwiftUI
 import Combine
 
+@MainActor
 final class MindmapViewModel: ObservableObject {
-    
+
     @Published var mindMap: MindMap
     @Published var selectedNodeID: UUID? = nil
     @Published var cachedLayout: LayoutResult = LayoutResult(positions: [:], totalHeight: 0)
@@ -21,7 +22,11 @@ final class MindmapViewModel: ObservableObject {
     @Published var generatingNodeID: UUID? = nil
     @Published var iconPickerNodeID: UUID? = nil
 
+    @Published var isReadAloudMode: Bool = false
+
     static var copiedNode: MindMapNode? = nil
+
+    private let narrator = SpeechNarrator()
 
     private let chatbotService = ChatbotService()
     
@@ -306,8 +311,49 @@ final class MindmapViewModel: ObservableObject {
         return nil
     }
     
+    // MARK: - Read Aloud (text-to-speech)
+
+    func enterReadAloud() {
+        isReadAloudMode = true
+    }
+
+    func exitReadAloud() {
+        narrator.stop()
+        isReadAloudMode = false
+    }
+
+    /// Speaks a node in the language the mindmap was generated in.
+    func speak(_ node: MindMapNode) {
+        narrator.speak(spokenText(for: node), language: mindMap.language)
+    }
+
+    /// Stops any narration in progress (e.g. when leaving the screen).
+    func stopSpeaking() {
+        narrator.stop()
+    }
+
+    /// What the voice reads: the title, then the summary if there is one.
+    private func spokenText(for node: MindMapNode) -> String {
+        let summary = (node.summary ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        return summary.isEmpty ? node.title : "\(node.title). \(summary)"
+    }
+
+    // MARK: - Info Badge
+
+    var infoBadgeIcon: String {
+        if isEditModeActive { return "pencil.circle.fill" }
+        if isReadAloudMode { return "speaker.wave.2.circle.fill" }
+        return "info.circle.fill"
+    }
+
+    var infoBadgeText: String {
+        if isEditModeActive { return "Editing. Hold a node for options" }
+        if isReadAloudMode { return "Hold a node to hear it read aloud" }
+        return "Hold a node to see its summary"
+    }
+
     // MARK: - Layout Engine
-    
+
     func recalculateLayout() {
         let result = MindmapLayoutEngine.layout(root: mindMap.root)
         cachedLayout = result.layout
