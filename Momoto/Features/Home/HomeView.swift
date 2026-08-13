@@ -486,6 +486,7 @@ struct MindmapGridCard: View {
                         .font(.system(size: 15, weight: .bold, design: .rounded))
                         .foregroundStyle(Theme.textPrimary)
                         .lineLimit(2, reservesSpace: true)
+                        .minimumScaleFactor(0.8)
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
 
@@ -573,6 +574,7 @@ struct MindmapListRow: View {
                     .font(.system(size: 17, weight: .semibold, design: .rounded))
                     .foregroundStyle(Theme.textPrimary)
                     .lineLimit(2)
+                    .minimumScaleFactor(0.85)
                     .multilineTextAlignment(.leading)
 
                 Text(relativeDate(mindmap.createdAt))

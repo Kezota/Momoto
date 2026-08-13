@@ -20,7 +20,7 @@ struct MindmapNodeView: View {
 
     @State private var editText: String = ""
 
-    static let width: CGFloat = 160
+    static let width: CGFloat = 200
 
     private var textColor: Color { nodeTextColor(depth: depth) }
 
@@ -55,7 +55,7 @@ struct MindmapNodeView: View {
                 Text(node.title)
                     .font(.system(depth == 0 ? .headline : .subheadline, design: .rounded))
                     .fontWeight(depth == 0 ? .bold : .semibold)
-                    .lineLimit(4)
+                    .lineLimit(5)
                     .minimumScaleFactor(0.9)
                     .multilineTextAlignment(.leading)
                     .foregroundStyle(textColor)

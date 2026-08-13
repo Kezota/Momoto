@@ -51,9 +51,9 @@ nonisolated struct MindmapPreferences: Codable, Equatable, Sendable {
         }
         var summaryWordCap: Int {
             switch self {
-            case .low: return 10
-            case .medium: return 15
-            case .high: return 22
+            case .low: return 25
+            case .medium: return 40
+            case .high: return 55
             }
         }
         var promptDescriptor: String {

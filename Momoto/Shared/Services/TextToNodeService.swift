@@ -56,14 +56,27 @@ final class TextToNodeService {
         - "children" MUST always exist (use [] if empty).
 
         CONTENT RULES:
-        - Titles: 1–3 words, concise, no punctuation.
+        - Extract the INFORMATION in the text, not its structure. Do NOT copy the text's
+          headings or section names as nodes; a heading is only a pointer to content. Read what
+          is written under it and turn the actual facts, claims, causes, and examples into nodes.
+        - Titles: 2–6 words, no end punctuation.
+        - A title MUST state an idea, fact, or claim on its own: prefer
+          "Cells Make Their Own Energy" over "Energy",
+          "Warm Up Before Running" over "Before".
+        - NEVER use a single vague word as a title (e.g. Before, After, Causes, Effects, Types).
+          Attach it to its subject: "Causes of Inflation", "Effects on Sleep".
         - No duplicate titles anywhere.
         - No generic labels (e.g., Introduction, Overview, Conclusion).
 
         SUMMARY RULES:
-        - Exactly 1 sentence.
-        - Maximum \(preferences.detail.summaryWordCap) words.
-        - Must be meaningful and descriptive (not fragments).
+        - 1 to 2 sentences, maximum \(preferences.detail.summaryWordCap) words total.
+        - The summary must TEACH the content of that node: include the specific facts, numbers,
+          names, reasons, or examples the text gives. Someone reading only the summaries should
+          understand the passage without opening the original text.
+        - NEVER merely restate or pad the title. If the text says why or how, the summary says
+          why or how.
+        - BAD:  title "Photosynthesis Needs Sunlight", summary "This is about photosynthesis and sunlight."
+        - GOOD: title "Photosynthesis Needs Sunlight", summary "Chlorophyll absorbs sunlight to turn water and CO2 into glucose, which the plant uses as food."
 
         PERSONALIZATION:
         - Detail: \(preferences.detail.promptDescriptor)
