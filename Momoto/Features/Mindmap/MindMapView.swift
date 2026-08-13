@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Combine
 
 struct MindMapView: View {
     
@@ -40,6 +41,9 @@ struct MindMapView: View {
     @State private var exportedImage: UIImage? = nil
     @State private var showShareSheet: Bool = false
     @State private var isExportingImage: Bool = false
+    
+    // Narrator
+    @State private var showVoiceInfo = false
     
     private var liveScale: CGFloat {
         min(max(scale * pinch.magnification, 0.4), 2.5)
@@ -205,7 +209,7 @@ struct MindMapView: View {
             ])
         ]
     }
-
+    
     var body: some View {
         GeometryReader { geometry in
             ZStack {
@@ -226,7 +230,11 @@ struct MindMapView: View {
                 ZStack(alignment: .topLeading) {
                     MindmapLineLayer(positions: viewModel.cachedLayout.positions, size: viewModel.contentSize)
                     MindmapNodeLayer(viewModel: viewModel) { node in
-                        poppedNode = node
+                        if viewModel.isReadAloudMode {
+                            viewModel.speak(node)
+                        } else {
+                            poppedNode = node
+                        }
                     }
                 }
                 .scaleEffect(liveScale, anchor: .topLeading)
@@ -243,9 +251,9 @@ struct MindMapView: View {
                 // mode change reads clearly at a glance, not just via the toolbar button.
                 VStack {
                     HStack(spacing: 8) {
-                        Image(systemName: viewModel.isEditModeActive ? "pencil.circle.fill" : "info.circle.fill")
+                        Image(systemName: viewModel.infoBadgeIcon)
                             .foregroundStyle(viewModel.isEditModeActive ? .white : Theme.purple)
-                        Text(viewModel.isEditModeActive ? "Editing. Hold a node for options" : "Hold a node to see its summary")
+                        Text(viewModel.infoBadgeText)
                             .font(.system(.footnote, design: .rounded).weight(.medium))
                             .foregroundStyle(viewModel.isEditModeActive ? .white : Theme.textPrimary)
                             .contentTransition(.numericText())
@@ -272,6 +280,7 @@ struct MindMapView: View {
                     Rectangle()
                         .stroke(Theme.purple, lineWidth: 3)
                         .ignoresSafeArea()
+                        .onDisappear { viewModel.stopSpeaking() }
                         .allowsHitTesting(false)
                         .transition(.opacity)
                 }
@@ -337,8 +346,8 @@ struct MindMapView: View {
                 }
             }
             
-            ToolbarItem(placement: .navigationBarTrailing) {
-                if viewModel.isEditModeActive {
+            if viewModel.isEditModeActive {
+                ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
                         withAnimation(.easeInOut(duration: 0.2)) {
                             viewModel.isEditModeActive = false
@@ -351,7 +360,33 @@ struct MindMapView: View {
                             .font(.system(.body, design: .rounded).weight(.semibold))
                             .foregroundStyle(Theme.purple)
                     }
-                } else {
+                }
+            } else if viewModel.isReadAloudMode {
+                // Separate items + a spacer so each gets its OWN glass background:
+                // a circle for the info icon, an oval for "Done" (without the
+                // spacer, iOS 26 merges adjacent items into one shared capsule).
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        showVoiceInfo = true
+                    } label: {
+                        Image(systemName: "info.circle")
+                            .foregroundStyle(Theme.purple)
+                    }
+                }
+                ToolbarSpacer(.fixed, placement: .navigationBarTrailing)
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            viewModel.exitReadAloud()
+                        }
+                    } label: {
+                        Text("Done")
+                            .font(.system(.body, design: .rounded).weight(.semibold))
+                            .foregroundStyle(Theme.purple)
+                    }
+                }
+            } else {
+                ToolbarItem(placement: .navigationBarTrailing) {
                     Menu {
                         Button {
                             exportAndShare()
@@ -364,6 +399,13 @@ struct MindMapView: View {
                             }
                         } label: {
                             Label("Edit", systemImage: "pencil")
+                        }
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                viewModel.enterReadAloud()
+                            }
+                        } label: {
+                            Label("Read Aloud", systemImage: "speaker.wave.2")
                         }
                     } label: {
                         if isExportingImage {
@@ -396,8 +438,21 @@ struct MindMapView: View {
                 ShareSheet(activityItems: [exportedImage])
             }
         }
+        .alert("Download a natural voice", isPresented: $showVoiceInfo) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text("""
+            For a more natural voice, download one in Settings:
+
+            1. Accessibility
+            2. Live Speech
+            3. Preferred Voices
+            4. Pick English or Indonesian
+            5. Download the voice you want
+            """)
+        }
     }
-    
+
 }
 
 #Preview {

@@ -7,7 +7,7 @@ import SwiftUI
 
 struct CapturedTextSelectionView: View {
     @ObservedObject var viewModel: CameraViewModel
-    
+    let onTextCaptured: (String) -> Void
     var body: some View {
         ZStack {
             capturedImageView
@@ -37,7 +37,7 @@ struct CapturedTextSelectionView: View {
             Spacer()
             
             Button {
-                viewModel.useSelectedSections()
+                viewModel.useSelectedSections(onTextCaptured: onTextCaptured)
             } label: {
                 Image(systemName: "checkmark")
                     .font(.system(size: 20, weight: .bold))

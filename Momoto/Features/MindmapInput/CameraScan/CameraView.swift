@@ -19,12 +19,17 @@ struct CameraView: View {
             if viewModel.ocr.isProcessing {
                 processingView
             } else {
-                scannerLayer
-                blackBars
-                bottomOverlay
+                switch viewModel.phase {
+                case .scanning:
+                    scannerLayer
+                    blackBars
+                    bottomOverlay
+                case .textSelection:
+                    CapturedTextSelectionView(viewModel: viewModel, onTextCaptured: onTextCaptured)
+                }
             }
         }
-        .navigationTitle(navigationTitle)
+        .navigationTitle("Scan")
         .navigationBarTitleDisplayMode(.inline)
         // The crop/selection step is an immersive editor over the captured image and keeps its
         // own floating controls; every other phase uses the standard navigation bar.
@@ -32,16 +37,6 @@ struct CameraView: View {
         .toolbarBackground(.hidden, for: .navigationBar)
         .toolbarColorScheme(isCameraLive ? .dark : nil, for: .navigationBar)
         // In the review step "back" means re-scan, not leave the scanner.
-        .navigationBarBackButtonHidden(viewModel.phase == .capturedText)
-        .toolbar {
-            if viewModel.phase == .capturedText {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Rescan", systemImage: "chevron.left") {
-                        viewModel.retake()
-                    }
-                }
-            }
-        }
         .alert(
             "Couldn't read the text",
             isPresented: Binding(
@@ -57,16 +52,7 @@ struct CameraView: View {
     
     /// True only while the live camera feed is on screen, where the bar sits over dark bands.
     private var isCameraLive: Bool {
-        !viewModel.ocr.isProcessing
-        && viewModel.phase != .textSelection
-        && viewModel.phase != .capturedText
-    }
-
-    private var navigationTitle: String {
-        switch viewModel.phase {
-        case .capturedText: return "Review Text"
-        default: return "Scan"
-        }
+        !viewModel.ocr.isProcessing && viewModel.phase != .textSelection
     }
 
     private var processingView: some View {

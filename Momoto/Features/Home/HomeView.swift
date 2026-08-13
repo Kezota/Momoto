@@ -166,7 +166,7 @@ struct HomeView: View {
                 case .paste:
                     PasteTextView(onSubmit: processInput)
                 case .preferences:
-                    PreferencesView(onGenerate: { prefs in
+                    PreferencesView(extractedText: $appState.pendingInputText, onGenerate: { prefs in
                         appState.pendingPreferences = prefs
                         appState.path.append(AppRoute.processing)
                     })
@@ -353,7 +353,8 @@ struct HomeView: View {
             root: mindmap.root.regeneratingIDs(),
             rawText: mindmap.rawText,
             createdAt: Date(),
-            source: mindmap.source
+            source: mindmap.source,
+            language: mindmap.language
         )
         HistoryService.shared.add(mindmap: copy)
         loadData()

@@ -13,7 +13,7 @@ final class CameraViewModel: ObservableObject {
     enum Phase {
         case scanning
         case textSelection
-        case capturedText
+
     }
     
     struct TextSection: Identifiable, Hashable {
@@ -48,10 +48,6 @@ final class CameraViewModel: ObservableObject {
         ocr.objectWillChange.sink { [weak self] _ in
             self?.objectWillChange.send()
         }.store(in: &cancellables)
-    }
-    
-    var generateDisabled: Bool {
-        ocr.scannedText.trimmingCharacters(in: .whitespacesAndNewlines).count < 10
     }
     
     var hasError: Bool {
@@ -132,7 +128,7 @@ final class CameraViewModel: ObservableObject {
         }
     }
     
-    func useSelectedSections() {
+    func useSelectedSections(onTextCaptured: (String) -> Void) {
         let selectedText = capturedTextSections
             .filter { cropQuad.intersects($0.bounds) }
             .sorted { $0.bounds.minY < $1.bounds.minY }
@@ -147,7 +143,7 @@ final class CameraViewModel: ObservableObject {
         
         ocr.scannedText = selectedText
         ocr.errorMessage = nil
-        phase = .capturedText
+        onTextCaptured(selectedText)
     }
     
     func handleScannerUnavailable() {
@@ -164,11 +160,6 @@ final class CameraViewModel: ObservableObject {
         cropQuad = .zero
     }
     
-    func handleGenerate(onTextCaptured: (String) -> Void) {
-        let text = ocr.scannedText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty else { return }
-        onTextCaptured(text)
-    }
     
     func dismissError() {
         ocr.errorMessage = nil
