@@ -22,11 +22,17 @@ struct MindMapView: View {
     // Pan (geser canvas)
     @State private var offset: CGSize = CGSize(width: 40, height: 100)
     @GestureState private var dragDelta: CGSize = .zero
-    
-    // Zoom (pinch)
+
+    // Zoom (pinch). Tracks where the pinch started so the zoom can be anchored under the
+    // user's fingers instead of the canvas origin.
     @State private var scale: CGFloat = 1.0
-    @GestureState private var pinchDelta: CGFloat = 1.0
-    
+    private struct PinchState {
+        var magnification: CGFloat = 1
+        var location: CGPoint = .zero
+        var isActive = false
+    }
+    @GestureState private var pinch = PinchState()
+
     // Popup long-press
     @State private var poppedNode: MindMapNode? = nil
     @State private var showChat: Bool = false
@@ -40,7 +46,7 @@ struct MindMapView: View {
     @State private var showVoiceInfo = false
     
     private var liveScale: CGFloat {
-        min(max(scale * pinchDelta, 0.4), 2.5)
+        min(max(scale * pinch.magnification, 0.4), 2.5)
     }
     
     private var chatFab: some View {
@@ -59,9 +65,20 @@ struct MindMapView: View {
         .buttonStyle(.plain)
     }
     
+    // The canvas transform is S = offset + point × scale (scaled about .topLeading). Zooming
+    // about the fingers means solving for the offset that keeps the canvas point currently
+    // under the pinch location fixed on screen: offset' = L − (L − offset) × m.
     private var liveOffset: CGSize {
-        CGSize(width: offset.width + dragDelta.width,
-               height: offset.height + dragDelta.height)
+        var base = CGSize(width: offset.width + dragDelta.width,
+                          height: offset.height + dragDelta.height)
+        if pinch.isActive {
+            let m = liveScale / scale
+            base = CGSize(
+                width: pinch.location.x - (pinch.location.x - base.width) * m,
+                height: pinch.location.y - (pinch.location.y - base.height) * m
+            )
+        }
+        return base
     }
 
     // Screen-space frame of a node, projecting its canvas position through the
@@ -298,9 +315,23 @@ struct MindMapView: View {
                 .onEnded { offset.width += $0.translation.width; offset.height += $0.translation.height }
         )
         .simultaneousGesture(
-            MagnificationGesture()
-                .updating($pinchDelta) { value, state, _ in state = value }
-                .onEnded { scale = min(max(scale * $0, 0.4), 2.5) }
+            MagnifyGesture()
+                .updating($pinch) { value, state, _ in
+                    state = PinchState(
+                        magnification: value.magnification,
+                        location: value.startLocation,
+                        isActive: true
+                    )
+                }
+                .onEnded { value in
+                    let newScale = min(max(scale * value.magnification, 0.4), 2.5)
+                    let m = newScale / scale
+                    offset = CGSize(
+                        width: value.startLocation.x - (value.startLocation.x - offset.width) * m,
+                        height: value.startLocation.y - (value.startLocation.y - offset.height) * m
+                    )
+                    scale = newScale
+                }
         )
         .animation(.easeInOut(duration: 0.2), value: poppedNode?.id)
         .navigationBarBackButtonHidden(true)
