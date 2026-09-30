@@ -2,9 +2,9 @@ name: iOS CI
 
 on:
   pull_request:
-    branches: [main, dev]
+    branches: [main, dev, dev-testing]
   push:
-    branches: [main, dev]
+    branches: [main, dev, dev-testing]
   # Lets you start a run by hand from the Actions tab (or `gh workflow run "iOS CI"`).
   workflow_dispatch:
 
