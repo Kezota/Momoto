@@ -6,11 +6,27 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXContainerItemProxy section */
+		EA04CBB2306CD770008EA735 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = EA550E322FA9C23F000AB599 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = EA550E392FA9C23F000AB599;
+			remoteInfo = Momoto;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
+		EA04CBAE306CD770008EA735 /* MomotoTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MomotoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		EA550E3A2FA9C23F000AB599 /* Momoto.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Momoto.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		EA04CBAF306CD770008EA735 /* MomotoTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = MomotoTests;
+			sourceTree = "<group>";
+		};
 		EA550E3C2FA9C23F000AB599 /* Momoto */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = Momoto;
@@ -19,6 +35,13 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		EA04CBAB306CD770008EA735 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		EA550E372FA9C23F000AB599 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -33,6 +56,7 @@
 			isa = PBXGroup;
 			children = (
 				EA550E3C2FA9C23F000AB599 /* Momoto */,
+				EA04CBAF306CD770008EA735 /* MomotoTests */,
 				EA550E3B2FA9C23F000AB599 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -41,6 +65,7 @@
 			isa = PBXGroup;
 			children = (
 				EA550E3A2FA9C23F000AB599 /* Momoto.app */,
+				EA04CBAE306CD770008EA735 /* MomotoTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -48,6 +73,29 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		EA04CBAD306CD770008EA735 /* MomotoTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = EA04CBB6306CD770008EA735 /* Build configuration list for PBXNativeTarget "MomotoTests" */;
+			buildPhases = (
+				EA04CBAA306CD770008EA735 /* Sources */,
+				EA04CBAB306CD770008EA735 /* Frameworks */,
+				EA04CBAC306CD770008EA735 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				EA04CBB3306CD770008EA735 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				EA04CBAF306CD770008EA735 /* MomotoTests */,
+			);
+			name = MomotoTests;
+			packageProductDependencies = (
+			);
+			productName = MomotoTests;
+			productReference = EA04CBAE306CD770008EA735 /* MomotoTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		EA550E392FA9C23F000AB599 /* Momoto */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = EA550E452FA9C240000AB599 /* Build configuration list for PBXNativeTarget "Momoto" */;
@@ -77,9 +125,13 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 2640;
+				LastSwiftUpdateCheck = 2660;
 				LastUpgradeCheck = 2660;
 				TargetAttributes = {
+					EA04CBAD306CD770008EA735 = {
+						CreatedOnToolsVersion = 26.0;
+						TestTargetID = EA550E392FA9C23F000AB599;
+					};
 					EA550E392FA9C23F000AB599 = {
 						CreatedOnToolsVersion = 26.4.1;
 					};
@@ -100,11 +152,19 @@
 			projectRoot = "";
 			targets = (
 				EA550E392FA9C23F000AB599 /* Momoto */,
+				EA04CBAD306CD770008EA735 /* MomotoTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		EA04CBAC306CD770008EA735 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		EA550E382FA9C23F000AB599 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -115,6 +175,13 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		EA04CBAA306CD770008EA735 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		EA550E362FA9C23F000AB599 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -124,7 +191,59 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		EA04CBB3306CD770008EA735 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = EA550E392FA9C23F000AB599 /* Momoto */;
+			targetProxy = EA04CBB2306CD770008EA735 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
+		EA04CBB4306CD770008EA735 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 6K36QX9QYF;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.kezota.MomotoTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Momoto.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Momoto";
+			};
+			name = Debug;
+		};
+		EA04CBB5306CD770008EA735 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 6K36QX9QYF;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.kezota.MomotoTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Momoto.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Momoto";
+			};
+			name = Release;
+		};
 		EA550E432FA9C240000AB599 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -255,7 +374,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 46DTK69WJC;
+				DEVELOPMENT_TEAM = 6K36QX9QYF;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Camera Permission";
@@ -265,12 +384,13 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.joeymartin.Momoto;
+				PRODUCT_BUNDLE_IDENTIFIER = com.kezota.Momoto;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -289,7 +409,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 46DTK69WJC;
+				DEVELOPMENT_TEAM = 6K36QX9QYF;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Camera Permission";
@@ -299,12 +419,13 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.joeymartin.Momoto;
+				PRODUCT_BUNDLE_IDENTIFIER = com.kezota.Momoto;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -319,6 +440,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		EA04CBB6306CD770008EA735 /* Build configuration list for PBXNativeTarget "MomotoTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				EA04CBB4306CD770008EA735 /* Debug */,
+				EA04CBB5306CD770008EA735 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		EA550E352FA9C23F000AB599 /* Build configuration list for PBXProject "Momoto" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

@@ -1,0 +1,85 @@
+name: iOS CI
+
+on:
+  pull_request:
+    branches: [main, dev]
+  push:
+    branches: [main, dev]
+  # Lets you start a run by hand from the Actions tab (or `gh workflow run "iOS CI"`).
+  workflow_dispatch:
+
+# If you push again while a run is in progress, cancel the old one.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Runs on every PR and push. `xcodebuild test` builds the app (Debug) first,
+  # so this job already proves the app compiles; no separate Debug build needed.
+  # ---------------------------------------------------------------------------
+  test:
+    name: Test (iOS Simulator)
+    runs-on: macos-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # The app targets iOS 26.x, so we need the newest Xcode installed on the runner.
+      - name: Select newest Xcode
+        run: |
+          XCODE=$(ls -d /Applications/Xcode*.app | sort -V | tail -1)
+          echo "Using $XCODE"
+          sudo xcode-select -s "$XCODE"
+          xcodebuild -version
+
+      # Same script you can run locally: scripts/ci/test.sh
+      - name: Run tests
+        run: scripts/ci/test.sh
+
+      # Keep the full result bundle when something fails so it can be opened in Xcode.
+      - name: Upload test results on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            TestResults.xcresult
+            xcodebuild-test.log
+
+  # ---------------------------------------------------------------------------
+  # Release archive. Catches "compiles in Debug but not in Release" problems and
+  # produces the artifact a future TestFlight step would upload. Only runs after
+  # tests pass, and only for main (or a manual run) to keep macOS minutes down.
+  # ---------------------------------------------------------------------------
+  build-release:
+    name: Build (Release archive)
+    needs: test
+    if: >-
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      github.event_name == 'workflow_dispatch'
+    runs-on: macos-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select newest Xcode
+        run: |
+          XCODE=$(ls -d /Applications/Xcode*.app | sort -V | tail -1)
+          sudo xcode-select -s "$XCODE"
+          xcodebuild -version
+
+      # Same script you can run locally: scripts/ci/build-release.sh
+      - name: Archive (Release, unsigned)
+        run: scripts/ci/build-release.sh
+
+      - name: Upload archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: Momoto-release-archive
+          path: build/Momoto.xcarchive
+          retention-days: 7

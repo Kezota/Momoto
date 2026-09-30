@@ -1,6 +1,10 @@
 # Xcode
 build/
 DerivedData/
+
+# CI output (scripts/ci/*.sh)
+*.xcresult
+xcodebuild-*.log
 *.xcuserstate
 *.xcscmblueprint
 *.xccheckout
@@ -9,6 +13,7 @@ xcuserdata/
 *.xcworkspace/xcuserdata/
 *.playground/timeline.xctimeline
 *.playground/playground.xcworkspace
+scripts/
 
 # Swift Package Manager
 .build/
